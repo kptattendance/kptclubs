@@ -8,6 +8,7 @@ import {
   approveClubApplication,
   rejectClubApplication,
   getClubStudents,
+  deleteClubStudent,
 } from "../controllers/clubInchargeController.js";
 import { getClubAttendanceMembers, submitClubAttendance } from "../controllers/attendanceController.js";
 
@@ -56,5 +57,12 @@ router.post(
   requireAuth,
   resolveUser,
   submitClubAttendance
+);
+
+router.delete(
+  "/:clubCode/students/:studentId",
+  requireAuth,
+  resolveUser,
+  deleteClubStudent
 );
 export default router;

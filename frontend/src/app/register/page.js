@@ -118,7 +118,7 @@ export default function StudentRegisterPage() {
 
         // Maximum 5 MB
 
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 2 * 1024 * 1024) {
             setError("Photo size must be less than 5 MB");
             return;
         }
@@ -490,7 +490,7 @@ const handleSubmit = async (e) => {
                             />
 
                             <p className="mt-2 text-xs text-slate-400">
-                                JPG, JPEG or PNG · Maximum 5 MB
+                                JPG, JPEG or PNG · Maximum 2 MB
                             </p>
 
                         </div>

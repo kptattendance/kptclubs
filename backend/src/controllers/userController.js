@@ -1,7 +1,10 @@
 import User from "../models/User.js";
 import Department from "../models/Department.js";
 import Club from "../models/Club.js";
-
+import StudentProfile from "../models/StudentProfile.js";
+import ClubMembership from "../models/ClubMembership.js";
+import Attendance from "../models/Attendance.js";
+import Certificate from "../models/Certificate.js";
 import cloudinary from "../config/cloudinary.js";
 
 import { clerkClient } from "@clerk/express";
@@ -867,107 +870,146 @@ export const updateUserStatus = async (
 // DELETE USER
 // ============================================================
 
-export const deleteUser = async (
-  req,
-  res
-) => {
+// ============================================================
+// DELETE USER
+// ============================================================
 
+export const deleteUser = async (req, res) => {
   try {
-
-    const { id } =
-      req.params;
-
+    const { id } = req.params;
 
     // --------------------------------------------------------
-    // Find MongoDB user
+    // FIND USER
     // --------------------------------------------------------
 
-    const user =
-      await User.findById(id);
-
+    const user = await User.findById(id);
 
     if (!user) {
-
       return res.status(404).json({
         success: false,
-        message:
-          "User not found",
+        message: "User not found",
       });
     }
 
+    // --------------------------------------------------------
+    // PREVENT ADMIN FROM DELETING HIMSELF
+    // --------------------------------------------------------
+
+    if (req.userId?.toString() === user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete your own account",
+      });
+    }
 
     // --------------------------------------------------------
-    // Delete Cloudinary photo
+    // IF STUDENT, DELETE STUDENT-RELATED DATA
+    // --------------------------------------------------------
+
+    if (user.role === "STUDENT") {
+      const studentProfile = await StudentProfile.findOne({
+        userId: user._id,
+      });
+
+      if (studentProfile) {
+        const studentId = studentProfile._id;
+
+        // Delete attendance records
+        await Attendance.deleteMany({
+          studentId,
+        });
+
+        // Delete certificate records
+        await Certificate.deleteMany({
+          studentId,
+        });
+
+        // Delete club memberships
+        await ClubMembership.deleteMany({
+          studentId,
+        });
+
+        // Delete student profile
+        await StudentProfile.findByIdAndDelete(
+          studentId
+        );
+      }
+    }
+
+    // --------------------------------------------------------
+    // DELETE CLOUDINARY PHOTO
     // --------------------------------------------------------
 
     if (user.photoPublicId) {
-
       try {
-
         await cloudinary.uploader.destroy(
           user.photoPublicId
         );
-
       } catch (error) {
-
         console.error(
           "Cloudinary deletion failed:",
           error
         );
 
-        // Continue deleting user
+        // Continue with database deletion
       }
     }
 
-
     // --------------------------------------------------------
-    // Delete Clerk user
+    // DELETE CLERK USER
     // --------------------------------------------------------
-
-    if (user.clerkUserId) {
-
-      try {
-
-        await clerkClient.users.deleteUser(
-          user.clerkUserId
-        );
-
-      } catch (error) {
-
-        console.error(
-          "Clerk deletion failed:",
-          error
-        );
-
-        return res.status(500).json({
-          success: false,
-          message:
-            "Failed to delete user from Clerk",
-        });
-      }
-    }
-
-
-    // --------------------------------------------------------
-    // Delete MongoDB user
-    // --------------------------------------------------------
-
-    await User.findByIdAndDelete(
-      id
+if (user.clerkUserId) {
+  try {
+    await clerkClient.users.deleteUser(
+      user.clerkUserId
     );
 
-
-    return res.status(200).json({
-
-      success: true,
-
-      message:
-        "User deleted successfully",
-
-    });
+    console.log(
+      "Clerk user deleted:",
+      user.clerkUserId
+    );
 
   } catch (error) {
 
+    if (error?.status === 404) {
+      console.log(
+        "Clerk user already does not exist:",
+        user.clerkUserId
+      );
+    } else {
+      console.error(
+        "Clerk deletion failed:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to delete user from Clerk",
+      });
+    }
+  }
+}
+
+    // --------------------------------------------------------
+    // DELETE MONGODB USER
+    // --------------------------------------------------------
+
+    await User.findByIdAndDelete(id);
+
+    // --------------------------------------------------------
+    // SUCCESS
+    // --------------------------------------------------------
+
+    return res.status(200).json({
+      success: true,
+      message:
+        user.role === "STUDENT"
+          ? "Student and all related data deleted successfully"
+          : "User deleted successfully",
+    });
+
+  } catch (error) {
     console.error(
       "Delete user error:",
       error

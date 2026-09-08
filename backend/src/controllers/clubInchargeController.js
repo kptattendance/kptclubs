@@ -2,6 +2,298 @@ import User from "../models/User.js";
 import Club from "../models/Club.js";
 import ClubMembership from "../models/ClubMembership.js";
 import StudentProfile from "../models/StudentProfile.js";
+import Attendance from "../models/Attendance.js";
+import Certificate from "../models/Certificate.js";
+import cloudinary from "../config/cloudinary.js";
+import { clerkClient } from "@clerk/express";
+
+/*
+=====================================================
+DELETE CLUB STUDENT COMPLETELY
+DELETE /api/club-incharge/:clubCode/students/:studentId
+=====================================================
+*/
+
+export const deleteClubStudent = async (req, res) => {
+  try {
+
+    console.log("========== DELETE CLUB STUDENT ==========");
+
+    const { clubCode, studentId } = req.params;
+
+    // =================================================
+    // 1. FIND CLUB IN-CHARGE
+    // =================================================
+
+    const user = await User.findOne({
+      clerkUserId: req.clerkUserId,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Club In-charge user not found",
+      });
+    }
+
+    // =================================================
+    // 2. CHECK ROLE
+    // =================================================
+
+    if (user.role !== "CLUB_INCHARGE") {
+      return res.status(403).json({
+        success: false,
+        message: "Only Club In-charge can delete students",
+      });
+    }
+
+    // =================================================
+    // 3. CHECK ASSIGNED CLUB
+    // =================================================
+
+    if (!user.clubId) {
+      return res.status(400).json({
+        success: false,
+        message: "No club is assigned to this Club In-charge",
+      });
+    }
+
+    // =================================================
+    // 4. FIND CLUB
+    // =================================================
+
+    const club = await Club.findOne({
+      code: clubCode.toUpperCase(),
+      isActive: true,
+    });
+
+    if (!club) {
+      return res.status(404).json({
+        success: false,
+        message: "Club not found",
+      });
+    }
+
+    // =================================================
+    // 5. SECURITY CHECK
+    // =================================================
+
+    if (
+      club._id.toString() !==
+      user.clubId.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You cannot delete students from another club",
+      });
+    }
+
+    // =================================================
+    // 6. FIND STUDENT PROFILE
+    // =================================================
+
+    const studentProfile =
+      await StudentProfile.findById(studentId);
+
+    if (!studentProfile) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found",
+      });
+    }
+
+    // =================================================
+    // 7. FIND MEMBERSHIP FOR THIS CLUB
+    // =================================================
+
+    const membership =
+      await ClubMembership.findOne({
+        studentId: studentProfile._id,
+        clubId: club._id,
+      });
+
+    if (!membership) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This student does not belong to your club",
+      });
+    }
+
+    // =================================================
+    // 8. FIND MONGO USER
+    // =================================================
+
+    const studentUser =
+      await User.findById(
+        studentProfile.userId
+      );
+
+    if (!studentUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Student user not found",
+      });
+    }
+
+    // =================================================
+    // 9. MAKE SURE IT IS A STUDENT
+    // =================================================
+
+    if (studentUser.role !== "STUDENT") {
+      return res.status(400).json({
+        success: false,
+        message: "The selected user is not a student",
+      });
+    }
+
+    // =================================================
+    // 10. DELETE ALL ATTENDANCE
+    // =================================================
+
+    await Attendance.deleteMany({
+      studentId: studentProfile._id,
+    });
+
+    console.log("Attendance deleted");
+
+    // =================================================
+    // 11. DELETE ALL CERTIFICATES
+    // =================================================
+
+    await Certificate.deleteMany({
+      studentId: studentProfile._id,
+    });
+
+    console.log("Certificates deleted");
+
+    // =================================================
+    // 12. DELETE ALL CLUB MEMBERSHIPS
+    // =================================================
+
+    await ClubMembership.deleteMany({
+      studentId: studentProfile._id,
+    });
+
+    console.log("Club memberships deleted");
+
+    // =================================================
+    // 13. DELETE STUDENT PROFILE
+    // =================================================
+
+    await StudentProfile.findByIdAndDelete(
+      studentProfile._id
+    );
+
+    console.log("Student profile deleted");
+
+    // =================================================
+    // 14. DELETE CLOUDINARY PHOTO
+    // =================================================
+
+    if (studentUser.photoPublicId) {
+
+      try {
+
+        await cloudinary.uploader.destroy(
+          studentUser.photoPublicId
+        );
+
+        console.log(
+          "Cloudinary photo deleted"
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Cloudinary deletion failed:",
+          error
+        );
+
+        // Continue deletion
+      }
+    }
+
+    // =================================================
+    // 15. DELETE CLERK USER
+    // =================================================
+
+    if (studentUser.clerkUserId) {
+
+      try {
+
+        await clerkClient.users.deleteUser(
+          studentUser.clerkUserId
+        );
+
+        console.log(
+          "Clerk user deleted:",
+          studentUser.clerkUserId
+        );
+
+      } catch (error) {
+
+        // If Clerk user is already missing,
+        // continue with MongoDB deletion.
+
+        if (error?.status === 404) {
+
+          console.log(
+            "Clerk user already does not exist:",
+            studentUser.clerkUserId
+          );
+
+        } else {
+
+          console.error(
+            "Clerk deletion failed:",
+            error
+          );
+
+          return res.status(500).json({
+            success: false,
+            message:
+              "Failed to delete student from Clerk",
+          });
+        }
+      }
+    }
+
+    // =================================================
+    // 16. DELETE MONGO USER
+    // =================================================
+
+    await User.findByIdAndDelete(
+      studentUser._id
+    );
+
+    console.log("Mongo user deleted");
+
+    // =================================================
+    // SUCCESS
+    // =================================================
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Student and all related data deleted successfully",
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Delete club student error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to delete student",
+    });
+  }
+};
 
 /*
 =====================================================
