@@ -8,28 +8,40 @@ import Department from "../models/Department.js";
 
 export const getHODDepartmentStudents = async (req, res) => {
   try {
-
     console.log("========== HOD DEPARTMENT STUDENTS ==========");
 
-    // MongoDB User document
-    const hod = req.user;
-
-    console.log("Mongo User ID:", hod?._id);
-    console.log("Role:", hod?.role);
-    console.log("Department ID:", hod?.departmentId);
-
-
     // =================================================
-    // CHECK USER
+    // GET LOGGED-IN USER
     // =================================================
 
-    if (!hod) {
+    const clerkUserId = req.clerkUserId;
+
+    if (!clerkUserId) {
       return res.status(401).json({
         success: false,
-        message: "Application user not found",
+        message: "Unauthorized",
       });
     }
 
+    // =================================================
+    // FIND HOD
+    // =================================================
+
+    const hod = await User.findOne({
+      clerkUserId,
+    }).select("_id name email role departmentId");
+
+    if (!hod) {
+      return res.status(404).json({
+        success: false,
+        message: "HOD user not found",
+      });
+    }
+
+    console.log("HOD:", hod.name);
+    console.log("HOD ID:", hod._id);
+    console.log("Role:", hod.role);
+    console.log("Department ID:", hod.departmentId);
 
     // =================================================
     // CHECK ROLE
@@ -42,7 +54,6 @@ export const getHODDepartmentStudents = async (req, res) => {
       });
     }
 
-
     // =================================================
     // CHECK DEPARTMENT
     // =================================================
@@ -54,69 +65,70 @@ export const getHODDepartmentStudents = async (req, res) => {
       });
     }
 
-
     // =================================================
-    // GET HOD DEPARTMENT
+    // GET DEPARTMENT
     // =================================================
 
     const department = await Department.findById(
       hod.departmentId
     ).select("_id code name");
 
-
     if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Department not found",
+        message: "HOD department not found",
       });
     }
 
+    console.log(
+      "HOD Department:",
+      department.code,
+      department.name
+    );
 
     // =================================================
     // GET ONLY STUDENTS FROM HOD DEPARTMENT
     // =================================================
 
-    const students =
-      await StudentProfile.find({
+    const students = await StudentProfile.find({
+      departmentId: department._id,
+    })
+      .populate(
+        "userId",
+        "name email phone profilePhoto isActive"
+      )
+      .populate(
+        "departmentId",
+        "code name"
+      )
+      .sort({
+        registerNumber: 1,
+      });
 
-        departmentId: hod.departmentId,
-
-      })
-        .populate(
-          "userId",
-          "name email phone profilePhoto isActive"
-        )
-        .populate(
-          "departmentId",
-          "code name"
-        )
-        .sort({
-          createdAt: -1,
-        });
-
+    console.log(
+      "Students found:",
+      students.length
+    );
 
     // =================================================
     // GET CLUB MEMBERSHIPS
     // =================================================
 
-    const studentIds =
-      students.map(
-        (student) => student._id
-      );
-
+    const studentIds = students.map(
+      (student) => student._id
+    );
 
     const memberships =
-      await ClubMembership.find({
-
-        studentId: {
-          $in: studentIds,
-        },
-
-      }).populate(
-        "clubId",
-        "code name"
-      );
-
+      studentIds.length > 0
+        ? await ClubMembership.find({
+            studentId: {
+              $in: studentIds,
+            },
+          }).populate(
+            "clubId",
+            "code name"
+          )
+        : [];
 
     // =================================================
     // CREATE MEMBERSHIP MAP
@@ -124,16 +136,12 @@ export const getHODDepartmentStudents = async (req, res) => {
 
     const membershipMap = new Map();
 
-
     memberships.forEach((membership) => {
-
       membershipMap.set(
         membership.studentId.toString(),
         membership
       );
-
     });
-
 
     // =================================================
     // FORMAT RESPONSE
@@ -141,17 +149,13 @@ export const getHODDepartmentStudents = async (req, res) => {
 
     const formattedStudents =
       students.map((student) => {
-
         const membership =
           membershipMap.get(
             student._id.toString()
           );
 
-
         return {
-
-          _id:
-            student._id,
+          _id: student._id,
 
           name:
             student.userId?.name || "",
@@ -211,44 +215,28 @@ export const getHODDepartmentStudents = async (req, res) => {
 
           isActive:
             student.userId?.isActive ?? true,
-
         };
-
       });
-
 
     // =================================================
     // RESPONSE
     // =================================================
 
     return res.status(200).json({
-
       success: true,
 
       department: {
-
-        _id:
-          department._id,
-
-        code:
-          department.code,
-
-        name:
-          department.name,
-
+        _id: department._id,
+        code: department.code,
+        name: department.name,
       },
 
-      count:
-        formattedStudents.length,
+      count: formattedStudents.length,
 
-      students:
-        formattedStudents,
-
+      students: formattedStudents,
     });
 
-
   } catch (error) {
-
     console.error(
       "========== HOD STUDENTS ERROR =========="
     );
@@ -256,17 +244,12 @@ export const getHODDepartmentStudents = async (req, res) => {
     console.error(error);
 
     return res.status(500).json({
-
       success: false,
-
       message:
         "Failed to load department students",
-
     });
-
   }
 };
-
 export const getHODDashboard = async (req, res) => {
   try {
 

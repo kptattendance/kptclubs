@@ -103,7 +103,6 @@ export default function ClubStudentsPage() {
 
         setStudentToDelete(null);
 
-        // Remove success message after 4 seconds
         setTimeout(() => {
           setSuccess("");
         }, 4000);
@@ -191,7 +190,7 @@ export default function ClubStudentsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="flex min-h-[50vh] items-center justify-center px-4">
         <div className="flex items-center gap-3 text-sm text-gray-500">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
           Loading students...
@@ -206,7 +205,7 @@ export default function ClubStudentsPage() {
 
   if (error && students.length === 0) {
     return (
-      <div className="mx-auto max-w-lg rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
+      <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-gray-100 sm:p-8">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
           <svg
             className="h-6 w-6 text-red-500"
@@ -227,7 +226,7 @@ export default function ClubStudentsPage() {
           Unable to load students
         </h2>
 
-        <p className="mt-2 text-sm text-red-600">
+        <p className="mt-2 break-words text-sm text-red-600">
           {error}
         </p>
 
@@ -247,34 +246,38 @@ export default function ClubStudentsPage() {
 
   return (
     <>
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto w-full max-w-7xl overflow-x-hidden">
+
         {/* ==============================================
             HEADER
         ============================================== */}
 
-        <div className="mb-7">
+        <div className="mb-5 sm:mb-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
+
+            <div className="min-w-0">
               <div className="mb-2 flex items-center gap-2">
-                <span className="inline-flex h-2 w-2 rounded-full bg-blue-600" />
+                <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-blue-600" />
 
                 <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
                   Club Members
                 </span>
               </div>
 
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
                 Students
               </h1>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 break-words text-sm text-gray-500">
                 {club?.name ||
                   `${clubCode?.toUpperCase()} Club`}{" "}
                 members
               </p>
             </div>
 
-            <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100">
+            {/* TOTAL STUDENTS */}
+
+            <div className="w-full rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 sm:w-auto">
               <p className="text-xs font-medium text-gray-400">
                 Total Students
               </p>
@@ -283,6 +286,7 @@ export default function ClubStudentsPage() {
                 {students.length}
               </p>
             </div>
+
           </div>
         </div>
 
@@ -291,7 +295,7 @@ export default function ClubStudentsPage() {
         ============================================== */}
 
         {success && (
-          <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+          <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
               <svg
                 className="h-4 w-4 text-emerald-600"
@@ -308,7 +312,7 @@ export default function ClubStudentsPage() {
               </svg>
             </div>
 
-            <p className="text-sm font-medium text-emerald-700">
+            <p className="break-words text-sm font-medium text-emerald-700">
               {success}
             </p>
           </div>
@@ -319,8 +323,8 @@ export default function ClubStudentsPage() {
         ============================================== */}
 
         {error && students.length > 0 && (
-          <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
-            <div className="flex items-center gap-3">
+          <div className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+            <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <svg
                   className="h-4 w-4 text-red-600"
@@ -337,14 +341,14 @@ export default function ClubStudentsPage() {
                 </svg>
               </div>
 
-              <p className="text-sm font-medium text-red-700">
+              <p className="break-words text-sm font-medium text-red-700">
                 {error}
               </p>
             </div>
 
             <button
               onClick={() => setError("")}
-              className="text-xs font-medium text-red-600 hover:text-red-800"
+              className="shrink-0 text-xs font-medium text-red-600 hover:text-red-800"
             >
               Dismiss
             </button>
@@ -356,9 +360,10 @@ export default function ClubStudentsPage() {
         ============================================== */}
 
         <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+
           {/* SEARCH */}
 
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <svg
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
               viewBox="0 0 24 24"
@@ -371,6 +376,7 @@ export default function ClubStudentsPage() {
                 cy="11"
                 r="7"
               />
+
               <path
                 strokeLinecap="round"
                 d="m20 20-4-4"
@@ -395,7 +401,7 @@ export default function ClubStudentsPage() {
             onChange={(e) =>
               setSortBy(e.target.value)
             }
-            className="rounded-xl bg-white px-4 py-3 text-sm text-gray-700 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl bg-white px-4 py-3 text-sm text-gray-700 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 sm:w-auto"
           >
             <option value="name">
               Sort by Name
@@ -409,19 +415,26 @@ export default function ClubStudentsPage() {
               Sort by Department
             </option>
           </select>
+
         </div>
 
         {/* ==============================================
-            STUDENT TABLE
+            STUDENT TABLE / MOBILE LIST
         ============================================== */}
 
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200/80">
-          {/* DESKTOP */}
+
+          {/* =================================================
+              DESKTOP TABLE
+          ================================================= */}
 
           <div className="hidden md:block">
+
             <table className="w-full">
+
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/80 text-left">
+
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Student
                   </th>
@@ -441,10 +454,12 @@ export default function ClubStudentsPage() {
                   <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Action
                   </th>
+
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-100">
+
                 {filteredStudents.length === 0 ? (
                   <tr>
                     <td
@@ -464,6 +479,7 @@ export default function ClubStudentsPage() {
                             cy="11"
                             r="7"
                           />
+
                           <path
                             strokeLinecap="round"
                             d="m20 20-4-4"
@@ -486,23 +502,26 @@ export default function ClubStudentsPage() {
                       key={student.id}
                       className="transition hover:bg-gray-50/70"
                     >
+
                       {/* STUDENT */}
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
+
                           <StudentPhoto
                             student={student}
                           />
 
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900">
+                            <p className="break-words font-semibold text-gray-900">
                               {student.name}
                             </p>
 
-                            <p className="mt-0.5 truncate text-xs text-gray-500">
+                            <p className="mt-0.5 max-w-xs truncate text-xs text-gray-500">
                               {student.email}
                             </p>
                           </div>
+
                         </div>
                       </td>
 
@@ -517,8 +536,8 @@ export default function ClubStudentsPage() {
                       {/* DEPARTMENT */}
 
                       <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">
+                        <div className="min-w-0">
+                          <p className="break-words text-sm font-medium text-gray-800">
                             {student.department?.name ||
                               "—"}
                           </p>
@@ -558,20 +577,28 @@ export default function ClubStudentsPage() {
                           Delete
                         </button>
                       </td>
+
                     </tr>
                   ))
                 )}
+
               </tbody>
+
             </table>
+
           </div>
 
-          {/* ============================================
+
+          {/* =================================================
               MOBILE
-          ============================================ */}
+          ================================================= */}
 
           <div className="divide-y divide-gray-100 md:hidden">
+
             {filteredStudents.length === 0 ? (
-              <div className="px-6 py-14 text-center">
+
+              <div className="px-5 py-14 text-center sm:px-6">
+
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-50">
                   <svg
                     className="h-5 w-5 text-gray-400"
@@ -585,6 +612,7 @@ export default function ClubStudentsPage() {
                       cy="11"
                       r="7"
                     />
+
                     <path
                       strokeLinecap="round"
                       d="m20 20-4-4"
@@ -595,33 +623,52 @@ export default function ClubStudentsPage() {
                 <p className="mt-3 text-sm font-medium text-gray-700">
                   No students found
                 </p>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  Try changing your search.
+                </p>
+
               </div>
+
             ) : (
+
               filteredStudents.map((student) => (
+
                 <div
                   key={student.id}
-                  className="p-5"
+                  className="p-4 sm:p-5"
                 >
-                  <div className="flex items-start justify-between gap-3">
+
+                  {/* STUDENT HEADER */}
+
+                  <div className="flex items-start justify-between gap-2 sm:gap-3">
+
                     <div className="flex min-w-0 items-center gap-3">
+
                       <StudentPhoto
                         student={student}
                       />
 
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-gray-900">
+
+                        <p className="break-words font-semibold text-gray-900">
                           {student.name}
                         </p>
 
-                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                        <p className="mt-0.5 break-all text-xs text-gray-500">
                           {student.email}
                         </p>
 
-                        <p className="mt-1 text-sm font-medium text-gray-700">
+                        <p className="mt-1 break-words text-sm font-medium text-gray-700">
                           {student.registerNumber}
                         </p>
+
                       </div>
+
                     </div>
+
+
+                    {/* DELETE ICON */}
 
                     <button
                       type="button"
@@ -636,22 +683,31 @@ export default function ClubStudentsPage() {
                     >
                       <TrashIcon />
                     </button>
+
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-4 rounded-xl bg-gray-50 p-3">
-                    <div>
+
+                  {/* DETAILS */}
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:gap-4">
+
+                    <div className="min-w-0">
+
                       <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
                         Department
                       </p>
 
-                      <p className="mt-1 text-sm font-medium text-gray-700">
+                      <p className="mt-1 break-words text-sm font-medium text-gray-700">
                         {student.department?.code ||
                           student.department?.name ||
                           "—"}
                       </p>
+
                     </div>
 
-                    <div>
+
+                    <div className="min-w-0">
+
                       <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
                         Semester
                       </p>
@@ -659,8 +715,13 @@ export default function ClubStudentsPage() {
                       <p className="mt-1 text-sm font-medium text-gray-700">
                         {student.semester || "—"}
                       </p>
+
                     </div>
+
                   </div>
+
+
+                  {/* DELETE BUTTON */}
 
                   <button
                     type="button"
@@ -675,82 +736,117 @@ export default function ClubStudentsPage() {
                     <TrashIcon />
                     Delete Student
                   </button>
+
                 </div>
+
               ))
+
             )}
+
           </div>
+
         </div>
+
       </div>
+
 
       {/* ==================================================
           DELETE CONFIRMATION MODAL
       ================================================== */}
 
       {studentToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 px-4 backdrop-blur-sm">
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-950/40 px-3 py-4 backdrop-blur-sm sm:px-4"
+          onClick={() => {
+            if (deletingId === null) {
+              setStudentToDelete(null);
+            }
+          }}
+        >
+
           <div
-            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="my-auto w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
-            {/* Modal Header */}
 
-            <div className="border-b border-gray-100 px-6 py-5">
-              <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50">
+            {/* MODAL HEADER */}
+
+            <div className="border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
+
+              <div className="flex items-start gap-3 sm:gap-4">
+
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 sm:h-11 sm:w-11">
                   <TrashIcon large />
                 </div>
 
-                <div>
+                <div className="min-w-0">
+
                   <h2 className="text-lg font-semibold text-gray-900">
                     Delete Student?
                   </h2>
 
-                  <p className="mt-1 text-sm leading-5 text-gray-500">
+                  <p className="mt-1 break-words text-sm leading-5 text-gray-500">
                     This action permanently removes the
                     student account and all related data.
                   </p>
+
                 </div>
+
               </div>
+
             </div>
 
-            {/* Student */}
 
-            <div className="px-6 py-5">
-              <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3">
+            {/* STUDENT */}
+
+            <div className="px-4 py-4 sm:px-6 sm:py-5">
+
+              <div className="flex min-w-0 items-center gap-3 rounded-xl bg-gray-50 p-3">
+
                 <StudentPhoto
                   student={studentToDelete}
                 />
 
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">
+
+                  <p className="break-words text-sm font-semibold text-gray-900">
                     {studentToDelete.name}
                   </p>
 
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 break-words text-xs text-gray-500">
                     {studentToDelete.registerNumber}
                   </p>
+
                 </div>
+
               </div>
 
-              <div className="mt-4 rounded-xl border border-red-100 bg-red-50 p-4">
+
+              <div className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 sm:p-4">
+
                 <p className="text-xs font-semibold text-red-700">
                   The following will be deleted:
                 </p>
 
-                <p className="mt-2 text-xs leading-5 text-red-600">
+                <p className="mt-2 break-words text-xs leading-5 text-red-600">
                   Student profile, club memberships,
                   attendance records, certificates,
                   MongoDB account, Clerk account and
                   profile photo.
                 </p>
+
               </div>
+
             </div>
 
-            {/* Buttons */}
 
-            <div className="flex gap-3 border-t border-gray-100 bg-gray-50/70 px-6 py-4">
+            {/* BUTTONS */}
+
+            <div className="flex flex-col gap-2 border-t border-gray-100 bg-gray-50/70 px-4 py-4 sm:flex-row sm:gap-3 sm:px-6">
+
               <button
                 type="button"
                 onClick={() =>
@@ -768,6 +864,7 @@ export default function ClubStudentsPage() {
                 disabled={deletingId !== null}
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
+
                 {deletingId !== null ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -779,11 +876,17 @@ export default function ClubStudentsPage() {
                     Delete Student
                   </>
                 )}
+
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
+
     </>
   );
 }

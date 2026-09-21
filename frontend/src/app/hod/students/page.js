@@ -5,217 +5,231 @@ import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 
 export default function HODStudentsPage() {
+  const { getToken, isLoaded } = useAuth();
 
-  const {
-    getToken,
-    isLoaded,
-  } = useAuth();
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  const [search, setSearch] = useState("");
+  const [semesterFilter, setSemesterFilter] = useState("ALL");
+  const [clubFilter, setClubFilter] = useState("ALL");
 
-  const [students, setStudents] =
-    useState([]);
-
-  const [department, setDepartment] =
-    useState(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  const [search, setSearch] =
-    useState("");
-
-  const [sortBy, setSortBy] =
-    useState("name");
-
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   // =====================================================
-  // LOAD STUDENTS
+  // LOAD DEPARTMENT STUDENTS
   // =====================================================
 
- const loadStudents = async () => {
+  const loadStudents = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  try {
+      const token = await getToken();
 
-    setLoading(true);
-    setError("");
+      const response = await api.get(
+        "/api/hod/department/students",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-    const token = await getToken();
-
-    console.log(
-      "HOD Clerk token:",
-      token
-    );
-
-    const response = await api.get(
-      "/api/hod/department/students",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      if (!response.data?.success) {
+        throw new Error(
+          response.data?.message ||
+            "Failed to load students"
+        );
       }
-    );
 
-    setStudents(
-      response.data.students || []
-    );
+      setStudents(
+        response.data.students || []
+      );
+    } catch (error) {
+      console.error(
+        "Load HOD students error:",
+        error.response?.data ||
+          error.message
+      );
 
-    setDepartment(
-      response.data.department || null
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Failed to load HOD students:",
-      error.response?.data ||
-      error.message
-    );
-
-    setError(
-      error.response?.data?.message ||
-      "Failed to load students"
-    );
-
-  } finally {
-
-    setLoading(false);
-
-  }
-
-};
-
-  // =====================================================
-  // LOAD ONCE AUTHENTICATION IS READY
-  // =====================================================
+      setError(
+        error.response?.data?.message ||
+          "Failed to load students"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-
     if (!isLoaded) return;
 
     loadStudents();
-
   }, [isLoaded]);
 
+  // =====================================================
+  // SEMESTERS
+  // =====================================================
+
+  const semesters = [1, 2, 3, 4, 5, 6];
 
   // =====================================================
-  // SEARCH + SORT
+  // CLUB LIST
   // =====================================================
 
-  const filteredStudents =
-    useMemo(() => {
+  const clubs = useMemo(() => {
+    const clubMap = new Map();
 
-      let result =
-        [...students];
+    students.forEach((student) => {
+      if (student.club?._id) {
+        clubMap.set(
+          String(student.club._id),
+          student.club
+        );
+      }
+    });
 
+    return Array.from(clubMap.values()).sort(
+      (a, b) =>
+        (a.name || "").localeCompare(
+          b.name || ""
+        )
+    );
+  }, [students]);
 
-      // SEARCH
-      if (search.trim()) {
+  // =====================================================
+  // FILTER + SORT
+  // =====================================================
 
-        const value =
-          search
-            .trim()
-            .toLowerCase();
+  const filteredStudents = useMemo(() => {
+    let result = [...students];
 
-        result =
-          result.filter(
-            (student) =>
+    // SEMESTER
+    if (semesterFilter !== "ALL") {
+      result = result.filter(
+        (student) =>
+          String(student.semester) ===
+          String(semesterFilter)
+      );
+    }
 
-              student.name
-                ?.toLowerCase()
-                .includes(value) ||
+    // CLUB
+    if (clubFilter !== "ALL") {
+      if (clubFilter === "NO_CLUB") {
+        result = result.filter(
+          (student) => !student.club
+        );
+      } else {
+        result = result.filter(
+          (student) =>
+            String(student.club?._id) ===
+            String(clubFilter)
+        );
+      }
+    }
 
-              student.registerNumber
-                ?.toLowerCase()
-                .includes(value) ||
+    // SEARCH
+    if (search.trim()) {
+      const value =
+        search.trim().toLowerCase();
 
-              student.email
-                ?.toLowerCase()
-                .includes(value) ||
+      result = result.filter((student) => {
+        return (
+          student.name
+            ?.toLowerCase()
+            .includes(value) ||
 
-              student.club?.name
-                ?.toLowerCase()
-                .includes(value)
+          student.registerNumber
+            ?.toLowerCase()
+            .includes(value) ||
+
+          student.club?.name
+            ?.toLowerCase()
+            .includes(value) ||
+
+          student.club?.code
+            ?.toLowerCase()
+            .includes(value)
+        );
+      });
+    }
+
+    // SORT
+    result.sort((a, b) => {
+      let valueA = "";
+      let valueB = "";
+
+      switch (sortBy) {
+        case "name":
+          valueA = a.name || "";
+          valueB = b.name || "";
+          break;
+
+        case "registerNumber":
+          valueA =
+            a.registerNumber || "";
+          valueB =
+            b.registerNumber || "";
+          break;
+
+        case "semester":
+          valueA = Number(
+            a.semester || 0
           );
+          valueB = Number(
+            b.semester || 0
+          );
+          break;
 
+        case "club":
+          valueA =
+            a.club?.name || "";
+          valueB =
+            b.club?.name || "";
+          break;
+
+        default:
+          break;
       }
 
+      if (
+        typeof valueA === "number" &&
+        typeof valueB === "number"
+      ) {
+        return sortOrder === "asc"
+          ? valueA - valueB
+          : valueB - valueA;
+      }
 
-      // SORT
-      result.sort((a, b) => {
-
-        if (sortBy === "name") {
-
-          return (
-            (a.name || "")
-              .localeCompare(
-                b.name || ""
-              )
+      return sortOrder === "asc"
+        ? String(valueA).localeCompare(
+            String(valueB)
+          )
+        : String(valueB).localeCompare(
+            String(valueA)
           );
+    });
 
-        }
-
-
-        if (sortBy === "registerNumber") {
-
-          return (
-            (a.registerNumber || "")
-              .localeCompare(
-                b.registerNumber || ""
-              )
-          );
-
-        }
-
-
-        if (sortBy === "club") {
-
-          return (
-            (a.club?.name || "No Club")
-              .localeCompare(
-                b.club?.name || "No Club"
-              )
-          );
-
-        }
-
-
-        if (sortBy === "status") {
-
-          return (
-            Number(b.isActive) -
-            Number(a.isActive)
-          );
-
-        }
-
-
-        return 0;
-
-      });
-
-
-      return result;
-
-    }, [
-      students,
-      search,
-      sortBy,
-    ]);
-
+    return result;
+  }, [
+    students,
+    search,
+    semesterFilter,
+    clubFilter,
+    sortBy,
+    sortOrder,
+  ]);
 
   // =====================================================
   // LOADING
   // =====================================================
 
   if (!isLoaded || loading) {
-
     return (
-
       <div className="flex min-h-[50vh] items-center justify-center">
-
         <div className="text-center">
 
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
@@ -225,178 +239,168 @@ export default function HODStudentsPage() {
           </p>
 
         </div>
-
       </div>
-
     );
-
   }
-
 
   // =====================================================
   // PAGE
   // =====================================================
 
   return (
+    <div className="min-h-full bg-gray-50 p-3 sm:p-5">
 
-    <div className="space-y-6">
+      <div className="mx-auto max-w-7xl">
 
+        {/* HEADER */}
+        <div className="mb-5">
+          <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">
+            Department Students
+          </h1>
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-
-          <div>
-
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              Department Students
-            </h1>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Students belonging to your department.
-            </p>
-
-          </div>
-
-
-          {department && (
-
-            <div className="rounded-lg bg-blue-50 px-4 py-2">
-
-              <p className="text-xs font-medium uppercase tracking-wide text-blue-500">
-                Department
-              </p>
-
-              <p className="text-sm font-semibold text-blue-700">
-                {department.code} — {department.name}
-              </p>
-
-            </div>
-
-          )}
-
-        </div>
-
-      </div>
-
-
-      {/* =================================================
-          ERROR
-      ================================================= */}
-
-      {error && (
-
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-
-          <p className="text-sm text-red-600">
-            {error}
+          <p className="mt-1 text-sm text-gray-500">
+            Students from your department
           </p>
-
-          <button
-            onClick={loadStudents}
-            className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-          >
-            Try Again
-          </button>
-
         </div>
 
-      )}
-
-
-      {!error && (
-
-        <>
-
-
-          {/* =================================================
-              TOOLBAR
-          ================================================= */}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-            {/* SEARCH */}
-
-            <div className="relative w-full sm:max-w-sm">
-
-              <input
-                type="text"
-                value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-                placeholder="Search students..."
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-
-            </div>
-
-
-            {/* SORT */}
-
-            <div className="flex items-center gap-2">
-
-              <label className="text-sm text-gray-500">
-                Sort:
-              </label>
-
-              <select
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value)
-                }
-                className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-              >
-
-                <option value="name">
-                  Name
-                </option>
-
-                <option value="registerNumber">
-                  Register Number
-                </option>
-
-                <option value="club">
-                  Club
-                </option>
-
-                <option value="status">
-                  Status
-                </option>
-
-              </select>
-
-            </div>
-
+        {/* ERROR */}
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error}
           </div>
+        )}
 
+        {!error && (
+          <>
+            {/* FILTER BAR */}
+            <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
 
-          {/* =================================================
-              TABLE
-          ================================================= */}
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                {/* FILTERS */}
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:flex">
 
-            <div className="border-b border-gray-100 px-5 py-4">
+                  {/* SEARCH */}
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) =>
+                      setSearch(e.target.value)
+                    }
+                    placeholder="Search student or register no."
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-64"
+                  />
 
-              <div className="flex items-center justify-between">
+                  {/* SEMESTER */}
+                  <select
+                    value={semesterFilter}
+                    onChange={(e) =>
+                      setSemesterFilter(
+                        e.target.value
+                      )
+                    }
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="ALL">
+                      All Semesters
+                    </option>
 
-                <div>
+                    {semesters.map(
+                      (semester) => (
+                        <option
+                          key={semester}
+                          value={semester}
+                        >
+                          Semester {semester}
+                        </option>
+                      )
+                    )}
+                  </select>
 
-                  <h2 className="font-semibold text-gray-900">
-                    Students
-                  </h2>
+                  {/* CLUB */}
+                  <select
+                    value={clubFilter}
+                    onChange={(e) =>
+                      setClubFilter(
+                        e.target.value
+                      )
+                    }
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="ALL">
+                      All Clubs
+                    </option>
 
-                  <p className="mt-1 text-xs text-gray-500">
-                    {filteredStudents.length} student
-                    {filteredStudents.length !== 1
-                      ? "s"
-                      : ""}
-                  </p>
+                    <option value="NO_CLUB">
+                      No Club
+                    </option>
+
+                    {clubs.map((club) => (
+                      <option
+                        key={club._id}
+                        value={club._id}
+                      >
+                        {club.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* SORT */}
+                  <select
+                    value={sortBy}
+                    onChange={(e) =>
+                      setSortBy(
+                        e.target.value
+                      )
+                    }
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="name">
+                      Sort: Name
+                    </option>
+
+                    <option value="registerNumber">
+                      Sort: Register No.
+                    </option>
+
+                    <option value="semester">
+                      Sort: Semester
+                    </option>
+
+                    <option value="club">
+                      Sort: Club
+                    </option>
+                  </select>
+
+                </div>
+
+                {/* RIGHT */}
+                <div className="flex gap-2">
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSortOrder(
+                        (prev) =>
+                          prev === "asc"
+                            ? "desc"
+                            : "asc"
+                      )
+                    }
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    {sortOrder === "asc"
+                      ? "↑ Ascending"
+                      : "↓ Descending"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={loadStudents}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                  >
+                    Refresh
+                  </button>
 
                 </div>
 
@@ -404,330 +408,168 @@ export default function HODStudentsPage() {
 
             </div>
 
+            {/* TABLE */}
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
 
-            {/* MOBILE SCROLL */}
+              {/* COUNT */}
+              <div className="border-b border-gray-200 px-4 py-3">
+                <p className="text-sm text-gray-600">
+                  Showing{" "}
+                  <span className="font-semibold text-gray-800">
+                    {filteredStudents.length}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-gray-800">
+                    {students.length}
+                  </span>{" "}
+                  students
+                </p>
+              </div>
 
-            <div className="overflow-x-auto">
+              {filteredStudents.length === 0 ? (
+                <div className="px-6 py-12 text-center">
 
-              <table className="w-full min-w-[850px]">
+                  <p className="text-sm font-medium text-gray-700">
+                    No students found.
+                  </p>
 
-                <thead>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Try changing the filters.
+                  </p>
 
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
 
-                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Student
-                    </th>
+                  <table className="w-full min-w-[800px] text-sm">
 
-                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Register No.
-                    </th>
+                    {/* HEADER */}
+                    <thead className="border-b border-gray-200 bg-gray-50">
 
-                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Department
-                    </th>
+                      <tr>
 
-                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Club
-                    </th>
+                        <th className="w-16 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">
+                          S.No.
+                        </th>
 
-                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Club Status
-                    </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                          Student
+                        </th>
 
-                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Status
-                    </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                          Register No.
+                        </th>
 
-                  </tr>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600">
+                          Semester
+                        </th>
 
-                </thead>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                          Club
+                        </th>
 
+                      </tr>
 
-                <tbody>
+                    </thead>
 
-                  {filteredStudents.length === 0 ? (
+                    {/* BODY */}
+                    <tbody className="divide-y divide-gray-100">
 
-                    <tr>
+                      {filteredStudents.map(
+                        (student, index) => (
 
-                      <td
-                        colSpan="6"
-                        className="px-5 py-12 text-center"
-                      >
+                          <tr
+                            key={student._id}
+                            className="transition hover:bg-blue-50/40"
+                          >
 
-                        <div className="text-3xl">
-                          👥
-                        </div>
+                            {/* S.NO */}
+                            <td className="px-4 py-3 text-center text-gray-500">
+                              {index + 1}
+                            </td>
 
-                        <p className="mt-3 text-sm font-medium text-gray-700">
-                          No students found
-                        </p>
+                            {/* STUDENT */}
+                            <td className="px-4 py-3">
 
-                        <p className="mt-1 text-xs text-gray-500">
-                          Try changing your search.
-                        </p>
+                              <div className="flex items-center gap-3">
 
-                      </td>
+                                {student.profilePhoto ? (
+                                  <img
+                                    src={
+                                      student.profilePhoto
+                                    }
+                                    alt={
+                                      student.name ||
+                                      "Student"
+                                    }
+                                    className="h-9 w-9 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
+                                    {student.name
+                                      ?.charAt(
+                                        0
+                                      )
+                                      ?.toUpperCase() ||
+                                      "S"}
+                                  </div>
+                                )}
 
-                    </tr>
-
-                  ) : (
-
-                    filteredStudents.map(
-                      (student) => (
-
-                        <tr
-                          key={student._id}
-                          className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
-                        >
-
-                          {/* STUDENT */}
-
-                          <td className="px-5 py-4">
-
-                            <div className="flex items-center gap-3">
-
-                              {student.profilePhoto ? (
-
-                                <img
-                                  src={
-                                    student.profilePhoto
-                                  }
-                                  alt={
-                                    student.name
-                                  }
-                                  className="h-11 w-11 rounded-full object-cover"
-                                />
-
-                              ) : (
-
-                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-lg">
-                                  👤
-                                </div>
-
-                              )}
-
-
-                              <div>
-
-                                <p className="font-semibold text-gray-900">
-                                  {student.name}
-                                </p>
-
-                                <p className="mt-0.5 text-xs text-gray-500">
-                                  {student.email}
-                                </p>
+                                <span className="font-medium text-gray-800">
+                                  {student.name ||
+                                    "-"}
+                                </span>
 
                               </div>
 
-                            </div>
+                            </td>
 
-                          </td>
-
-
-                          {/* REGISTER NUMBER */}
-
-                          <td className="px-5 py-4">
-
-                            <span className="font-medium text-gray-700">
+                            {/* REGISTER */}
+                            <td className="px-4 py-3 font-medium text-gray-700">
                               {student.registerNumber ||
                                 "-"}
-                            </span>
+                            </td>
 
-                          </td>
+                            {/* SEMESTER */}
+                            <td className="px-4 py-3 text-center text-gray-700">
+                              {student.semester ||
+                                "-"}
+                            </td>
 
+                            {/* CLUB */}
+                            <td className="px-4 py-3">
 
-                          {/* DEPARTMENT */}
+                              {student.club ? (
+                                <span className="font-medium text-gray-700">
+                                  {student.club.name}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400">
+                                  No Club
+                                </span>
+                              )}
 
-                          <td className="px-5 py-4">
+                            </td>
 
-                            <div>
+                          </tr>
 
-                              <p className="font-medium text-gray-800">
-                                {
-                                  student.department
-                                    ?.code
-                                }
-                              </p>
+                        )
+                      )}
 
-                              <p className="text-xs text-gray-500">
-                                {
-                                  student.department
-                                    ?.name
-                                }
-                              </p>
+                    </tbody>
 
-                            </div>
+                  </table>
 
-                          </td>
-
-
-                          {/* CLUB */}
-
-                          <td className="px-5 py-4">
-
-                            {student.club ? (
-
-                              <div>
-
-                                <p className="font-medium text-gray-800">
-                                  {
-                                    student.club
-                                      .name
-                                  }
-                                </p>
-
-                                <p className="text-xs text-gray-500">
-                                  {
-                                    student.club
-                                      .code
-                                  }
-                                </p>
-
-                              </div>
-
-                            ) : (
-
-                              <span className="text-sm text-gray-400">
-                                No Club
-                              </span>
-
-                            )}
-
-                          </td>
-
-
-                          {/* CLUB STATUS */}
-
-                          <td className="px-5 py-4">
-
-                            <ClubStatus
-                              status={
-                                student.clubStatus
-                              }
-                            />
-
-                          </td>
-
-
-                          {/* USER STATUS */}
-
-                          <td className="px-5 py-4">
-
-                            {student.isActive ? (
-
-                              <span className="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                                Active
-                              </span>
-
-                            ) : (
-
-                              <span className="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-                                Inactive
-                              </span>
-
-                            )}
-
-                          </td>
-
-                        </tr>
-
-                      )
-                    )
-
-                  )}
-
-                </tbody>
-
-              </table>
+                </div>
+              )}
 
             </div>
 
-          </div>
+          </>
+        )}
 
-        </>
-
-      )}
+      </div>
 
     </div>
-
   );
-
-}
-
-
-/*
-=====================================================
-CLUB STATUS
-=====================================================
-*/
-
-function ClubStatus({ status }) {
-
-  if (!status) {
-
-    return (
-
-      <span className="text-sm text-gray-400">
-        -
-      </span>
-
-    );
-
-  }
-
-
-  const statusMap = {
-
-    PENDING_CLUB_APPROVAL: {
-      label: "Club Pending",
-      classes:
-        "bg-yellow-50 text-yellow-700",
-    },
-
-    PENDING_HOD_APPROVAL: {
-      label: "HOD Pending",
-      classes:
-        "bg-orange-50 text-orange-700",
-    },
-
-    CONFIRMED: {
-      label: "Confirmed",
-      classes:
-        "bg-green-50 text-green-700",
-    },
-
-    REJECTED_BY_CLUB: {
-      label: "Club Rejected",
-      classes:
-        "bg-red-50 text-red-700",
-    },
-
-    REJECTED_BY_HOD: {
-      label: "HOD Rejected",
-      classes:
-        "bg-red-50 text-red-700",
-    },
-
-  };
-
-
-  const item =
-    statusMap[status] || {
-      label: status,
-      classes:
-        "bg-gray-50 text-gray-600",
-    };
-
-
-  return (
-
-    <span
-      className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${item.classes}`}
-    >
-      {item.label}
-    </span>
-
-  );
-
 }
