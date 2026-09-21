@@ -1251,52 +1251,54 @@ export const getClubCertificateStudents = async (req, res) => {
       // ==================================================
       // RESPONSE
       // ==================================================
+students.push({
+  studentId: student._id,
 
-      students.push({
-        studentId: student._id,
+  name:
+    student.userId?.name || "Unknown",
 
-        name:
-          student.userId?.name || "Unknown",
+  email:
+    student.userId?.email || "",
 
-        email:
-          student.userId?.email || "",
+  registerNumber:
+    student.registerNumber || "",
 
-        registerNumber:
-          student.registerNumber || "",
+  phone:
+    student.phone ||
+    student.userId?.phone ||
+    "",
 
-        phone:
-          student.phone ||
-          student.userId?.phone ||
-          "",
+  profilePhoto:
+    student.photoUrl ||
+    student.userId?.profilePhoto ||
+    null,
 
-        profilePhoto:
-          student.photoUrl ||
-          student.userId?.profilePhoto ||
-          null,
+  department:
+    student.departmentId?.name || "",
 
-        department:
-          student.departmentId?.name || "",
+  departmentCode:
+    student.departmentId?.code || "",
 
-        departmentCode:
-          student.departmentId?.code || "",
+  semester:
+    student.semester,
 
-        // Attendance is information only
-        attendedClasses,
-        totalClasses,
-        attendancePercentage,
+  // Attendance is information only
+  attendedClasses,
+  totalClasses,
+  attendancePercentage,
 
-        // Certificate information
-        certificateId: certificate._id,
+  // Certificate information
+  certificateId: certificate._id,
 
-        certificateNumber:
-          certificate.certificateNumber,
+  certificateNumber:
+    certificate.certificateNumber,
 
-        certificateStatus:
-          certificate.status,
+  certificateStatus:
+    certificate.status,
 
-        approvedAt:
-          certificate.approvedAt || null,
-      });
+  approvedAt:
+    certificate.approvedAt || null,
+});
     }
 
     return res.status(200).json({

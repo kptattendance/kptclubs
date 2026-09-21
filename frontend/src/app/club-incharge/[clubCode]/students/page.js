@@ -19,8 +19,12 @@ export default function ClubStudentsPage() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("name");
 
-  const [deletingId, setDeletingId] = useState(null);
+  const [departmentFilter, setDepartmentFilter] = useState("ALL");
+  const [semesterFilter, setSemesterFilter] = useState("ALL");
+
+  // DELETE STATES
   const [studentToDelete, setStudentToDelete] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   // ==================================================
   // LOAD STUDENTS
@@ -125,8 +129,38 @@ export default function ClubStudentsPage() {
   };
 
   // ==================================================
-  // SEARCH + SORT
+  // SEARCH + FILTER + SORT
   // ==================================================
+
+  const departmentOptions = useMemo(() => {
+    return [
+      ...new Set(
+        students
+          .map(
+            (student) =>
+              student.department?.name
+          )
+          .filter(Boolean)
+      ),
+    ].sort();
+  }, [students]);
+
+  const semesterOptions = useMemo(() => {
+    return [
+      ...new Set(
+        students
+          .map((student) => student.semester)
+          .filter(
+            (semester) =>
+              semester !== undefined &&
+              semester !== null &&
+              semester !== ""
+          )
+      ),
+    ].sort(
+      (a, b) => Number(a) - Number(b)
+    );
+  }, [students]);
 
   const filteredStudents = useMemo(() => {
     let result = [...students];
@@ -134,29 +168,56 @@ export default function ClubStudentsPage() {
     const searchText =
       search.trim().toLowerCase();
 
+    // SEARCH
     if (searchText) {
       result = result.filter((student) => {
         const name =
           student.name?.toLowerCase() || "";
 
         const registerNumber =
-          student.registerNumber?.toLowerCase() || "";
+          student.registerNumber?.toLowerCase() ||
+          "";
 
         const department =
-          student.department?.name?.toLowerCase() || "";
+          student.department?.name?.toLowerCase() ||
+          "";
 
         const departmentCode =
-          student.department?.code?.toLowerCase() || "";
+          student.department?.code?.toLowerCase() ||
+          "";
+
+        const email =
+          student.email?.toLowerCase() || "";
 
         return (
           name.includes(searchText) ||
           registerNumber.includes(searchText) ||
           department.includes(searchText) ||
-          departmentCode.includes(searchText)
+          departmentCode.includes(searchText) ||
+          email.includes(searchText)
         );
       });
     }
 
+    // DEPARTMENT FILTER
+    if (departmentFilter !== "ALL") {
+      result = result.filter(
+        (student) =>
+          student.department?.name ===
+          departmentFilter
+      );
+    }
+
+    // SEMESTER FILTER
+    if (semesterFilter !== "ALL") {
+      result = result.filter(
+        (student) =>
+          String(student.semester) ===
+          String(semesterFilter)
+      );
+    }
+
+    // SORT
     result.sort((a, b) => {
       if (sortBy === "name") {
         return (a.name || "").localeCompare(
@@ -165,7 +226,9 @@ export default function ClubStudentsPage() {
       }
 
       if (sortBy === "registerNumber") {
-        return (a.registerNumber || "").localeCompare(
+        return (
+          a.registerNumber || ""
+        ).localeCompare(
           b.registerNumber || ""
         );
       }
@@ -178,23 +241,48 @@ export default function ClubStudentsPage() {
         );
       }
 
+      if (sortBy === "semester") {
+        return (
+          Number(a.semester || 0) -
+          Number(b.semester || 0)
+        );
+      }
+
       return 0;
     });
 
     return result;
-  }, [students, search, sortBy]);
+  }, [
+    students,
+    search,
+    sortBy,
+    departmentFilter,
+    semesterFilter,
+  ]);
+
+  const clearFilters = () => {
+    setSearch("");
+    setDepartmentFilter("ALL");
+    setSemesterFilter("ALL");
+    setSortBy("name");
+  };
 
   // ==================================================
   // LOADING
   // ==================================================
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4">
+
         <div className="flex items-center gap-3 text-sm text-gray-500">
+
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
+
           Loading students...
+
         </div>
+
       </div>
     );
   }
@@ -206,7 +294,9 @@ export default function ClubStudentsPage() {
   if (error && students.length === 0) {
     return (
       <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-gray-100 sm:p-8">
+
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+
           <svg
             className="h-6 w-6 text-red-500"
             viewBox="0 0 24 24"
@@ -220,6 +310,7 @@ export default function ClubStudentsPage() {
               d="M12 9v4m0 4h.01M10.29 3.86l-8.18 14A2 2 0 003.84 21h16.32a2 2 0 001.73-3.14l-8.18-14a2 2 0 00-3.42 0z"
             />
           </svg>
+
         </div>
 
         <h2 className="mt-4 text-lg font-semibold text-gray-900">
@@ -236,6 +327,7 @@ export default function ClubStudentsPage() {
         >
           Try Again
         </button>
+
       </div>
     );
   }
@@ -253,15 +345,19 @@ export default function ClubStudentsPage() {
         ============================================== */}
 
         <div className="mb-5 sm:mb-7">
+
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 
             <div className="min-w-0">
+
               <div className="mb-2 flex items-center gap-2">
+
                 <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-blue-600" />
 
                 <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
                   Club Members
                 </span>
+
               </div>
 
               <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -273,11 +369,13 @@ export default function ClubStudentsPage() {
                   `${clubCode?.toUpperCase()} Club`}{" "}
                 members
               </p>
+
             </div>
 
             {/* TOTAL STUDENTS */}
 
             <div className="w-full rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 sm:w-auto">
+
               <p className="text-xs font-medium text-gray-400">
                 Total Students
               </p>
@@ -285,10 +383,13 @@ export default function ClubStudentsPage() {
               <p className="mt-0.5 text-xl font-bold text-gray-900">
                 {students.length}
               </p>
+
             </div>
 
           </div>
+
         </div>
+
 
         {/* ==============================================
             SUCCESS MESSAGE
@@ -296,7 +397,9 @@ export default function ClubStudentsPage() {
 
         {success && (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+
               <svg
                 className="h-4 w-4 text-emerald-600"
                 viewBox="0 0 24 24"
@@ -310,13 +413,16 @@ export default function ClubStudentsPage() {
                   d="M5 12l4 4L19 6"
                 />
               </svg>
+
             </div>
 
             <p className="break-words text-sm font-medium text-emerald-700">
               {success}
             </p>
+
           </div>
         )}
+
 
         {/* ==============================================
             ERROR MESSAGE
@@ -324,8 +430,11 @@ export default function ClubStudentsPage() {
 
         {error && students.length > 0 && (
           <div className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+
             <div className="flex min-w-0 items-start gap-3">
+
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100">
+
                 <svg
                   className="h-4 w-4 text-red-600"
                   viewBox="0 0 24 24"
@@ -339,11 +448,13 @@ export default function ClubStudentsPage() {
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
+
               </div>
 
               <p className="break-words text-sm font-medium text-red-700">
                 {error}
               </p>
+
             </div>
 
             <button
@@ -352,71 +463,214 @@ export default function ClubStudentsPage() {
             >
               Dismiss
             </button>
+
           </div>
         )}
 
+
         {/* ==============================================
-            SEARCH + SORT
+            SEARCH + FILTER + SORT
         ============================================== */}
 
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+        <div className="mb-5 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200/80 sm:p-5">
 
-          {/* SEARCH */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
 
-          <div className="relative min-w-0 flex-1">
-            <svg
-              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle
-                cx="11"
-                cy="11"
-                r="7"
-              />
+            {/* SEARCH */}
 
-              <path
-                strokeLinecap="round"
-                d="m20 20-4-4"
-              />
-            </svg>
+            <div className="relative sm:col-span-2 lg:col-span-2">
 
-            <input
-              type="text"
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Search by name, register number or department"
-              className="w-full rounded-xl bg-white py-3 pl-10 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
-            />
+              <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+                Search
+              </label>
+
+              <div className="relative">
+
+                <svg
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="7"
+                  />
+
+                  <path
+                    strokeLinecap="round"
+                    d="m20 20-4-4"
+                  />
+                </svg>
+
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
+                  placeholder="Name, register number or department"
+                  className="w-full rounded-xl bg-white py-3 pl-10 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* DEPARTMENT */}
+
+            <div>
+
+              <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+                Department
+              </label>
+
+              <select
+                value={departmentFilter}
+                onChange={(e) =>
+                  setDepartmentFilter(
+                    e.target.value
+                  )
+                }
+                className="w-full rounded-xl bg-white px-3 py-3 text-sm text-gray-700 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
+              >
+
+                <option value="ALL">
+                  All Departments
+                </option>
+
+                {departmentOptions.map(
+                  (department) => (
+                    <option
+                      key={department}
+                      value={department}
+                    >
+                      {department}
+                    </option>
+                  )
+                )}
+
+              </select>
+
+            </div>
+
+
+            {/* SEMESTER */}
+
+            <div>
+
+              <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+                Semester
+              </label>
+
+              <select
+                value={semesterFilter}
+                onChange={(e) =>
+                  setSemesterFilter(
+                    e.target.value
+                  )
+                }
+                className="w-full rounded-xl bg-white px-3 py-3 text-sm text-gray-700 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
+              >
+
+                <option value="ALL">
+                  All Semesters
+                </option>
+
+                {semesterOptions.map(
+                  (semester) => (
+                    <option
+                      key={semester}
+                      value={semester}
+                    >
+                      Semester {semester}
+                    </option>
+                  )
+                )}
+
+              </select>
+
+            </div>
+
+
+            {/* SORT */}
+
+            <div>
+
+              <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+                Sort By
+              </label>
+
+              <select
+                value={sortBy}
+                onChange={(e) =>
+                  setSortBy(e.target.value)
+                }
+                className="w-full rounded-xl bg-white px-3 py-3 text-sm text-gray-700 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500"
+              >
+
+                <option value="name">
+                  Name
+                </option>
+
+                <option value="registerNumber">
+                  Register Number
+                </option>
+
+                <option value="department">
+                  Department
+                </option>
+
+                <option value="semester">
+                  Semester
+                </option>
+
+              </select>
+
+            </div>
+
           </div>
 
-          {/* SORT */}
 
-          <select
-            value={sortBy}
-            onChange={(e) =>
-              setSortBy(e.target.value)
-            }
-            className="w-full rounded-xl bg-white px-4 py-3 text-sm text-gray-700 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 sm:w-auto"
-          >
-            <option value="name">
-              Sort by Name
-            </option>
+          {/* FILTER FOOTER */}
 
-            <option value="registerNumber">
-              Sort by Register Number
-            </option>
+          <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
 
-            <option value="department">
-              Sort by Department
-            </option>
-          </select>
+            <p className="text-xs text-gray-500">
+              Showing{" "}
+              <span className="font-bold text-gray-800">
+                {filteredStudents.length}
+              </span>{" "}
+              of{" "}
+              <span className="font-bold text-gray-800">
+                {students.length}
+              </span>{" "}
+              students
+            </p>
+
+
+            {(search ||
+              departmentFilter !== "ALL" ||
+              semesterFilter !== "ALL" ||
+              sortBy !== "name") && (
+
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 sm:w-auto"
+              >
+                Clear Filters
+              </button>
+
+            )}
+
+          </div>
 
         </div>
+
 
         {/* ==============================================
             STUDENT TABLE / MOBILE LIST
@@ -433,7 +687,12 @@ export default function ClubStudentsPage() {
             <table className="w-full">
 
               <thead>
+
                 <tr className="border-b border-gray-100 bg-gray-50/80 text-left">
+
+                  <th className="w-16 px-6 py-4 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    #
+                  </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Student
@@ -456,17 +715,23 @@ export default function ClubStudentsPage() {
                   </th>
 
                 </tr>
+
               </thead>
+
 
               <tbody className="divide-y divide-gray-100">
 
                 {filteredStudents.length === 0 ? (
+
                   <tr>
+
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="px-6 py-14 text-center"
                     >
+
                       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-50">
+
                         <svg
                           className="h-5 w-5 text-gray-400"
                           viewBox="0 0 24 24"
@@ -485,6 +750,7 @@ export default function ClubStudentsPage() {
                             d="m20 20-4-4"
                           />
                         </svg>
+
                       </div>
 
                       <p className="mt-3 text-sm font-medium text-gray-700">
@@ -492,94 +758,133 @@ export default function ClubStudentsPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-gray-500">
-                        Try changing your search.
+                        Try changing your search or filters.
                       </p>
+
                     </td>
+
                   </tr>
+
                 ) : (
-                  filteredStudents.map((student) => (
-                    <tr
-                      key={student.id}
-                      className="transition hover:bg-gray-50/70"
-                    >
 
-                      {/* STUDENT */}
+                  filteredStudents.map(
+                    (student, index) => (
 
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <tr
+                        key={student.id}
+                        className="transition hover:bg-gray-50/70"
+                      >
 
-                          <StudentPhoto
-                            student={student}
-                          />
+                        {/* S.NO */}
 
-                          <div className="min-w-0">
-                            <p className="break-words font-semibold text-gray-900">
-                              {student.name}
-                            </p>
+                        <td className="px-6 py-4 text-center">
 
-                            <p className="mt-0.5 max-w-xs truncate text-xs text-gray-500">
-                              {student.email}
-                            </p>
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                            {index + 1}
+                          </span>
+
+                        </td>
+
+
+                        {/* STUDENT */}
+
+                        <td className="px-6 py-4">
+
+                          <div className="flex items-center gap-3">
+
+                            <StudentPhoto
+                              student={student}
+                            />
+
+                            <div className="min-w-0">
+
+                              <p className="break-words font-semibold text-gray-900">
+                                {student.name}
+                              </p>
+
+                              <p className="mt-0.5 max-w-xs truncate text-xs text-gray-500">
+                                {student.email}
+                              </p>
+
+                            </div>
+
                           </div>
 
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* REGISTER NUMBER */}
 
-                      <td className="px-6 py-4">
-                        <span className="rounded-md bg-gray-50 px-2.5 py-1 text-sm font-medium text-gray-700">
-                          {student.registerNumber}
-                        </span>
-                      </td>
+                        {/* REGISTER NUMBER */}
 
-                      {/* DEPARTMENT */}
+                        <td className="px-6 py-4">
 
-                      <td className="px-6 py-4">
-                        <div className="min-w-0">
-                          <p className="break-words text-sm font-medium text-gray-800">
-                            {student.department?.name ||
-                              "—"}
-                          </p>
+                          <span className="rounded-md bg-gray-50 px-2.5 py-1 text-sm font-medium text-gray-700">
+                            {student.registerNumber}
+                          </span>
 
-                          {student.department?.code && (
-                            <p className="mt-0.5 text-xs text-gray-500">
-                              {student.department.code}
+                        </td>
+
+
+                        {/* DEPARTMENT */}
+
+                        <td className="px-6 py-4">
+
+                          <div className="min-w-0">
+
+                            <p className="break-words text-sm font-medium text-gray-800">
+                              {student.department?.name ||
+                                "—"}
                             </p>
-                          )}
-                        </div>
-                      </td>
 
-                      {/* SEMESTER */}
+                            {student.department?.code && (
+                              <p className="mt-0.5 text-xs text-gray-500">
+                                {student.department.code}
+                              </p>
+                            )}
 
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-700">
-                          Semester {student.semester}
-                        </span>
-                      </td>
+                          </div>
 
-                      {/* DELETE */}
+                        </td>
 
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setStudentToDelete(
-                              student
-                            )
-                          }
-                          disabled={
-                            deletingId === student.id
-                          }
-                          className="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <TrashIcon />
-                          Delete
-                        </button>
-                      </td>
 
-                    </tr>
-                  ))
+                        {/* SEMESTER */}
+
+                        <td className="px-6 py-4">
+
+                          <span className="inline-flex rounded-md bg-blue-50 px-2.5 py-1.5 text-sm font-semibold text-blue-700">
+                            Sem {student.semester || "—"}
+                          </span>
+
+                        </td>
+
+
+                        {/* DELETE */}
+
+                        <td className="px-6 py-4 text-right">
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setStudentToDelete(
+                                student
+                              )
+                            }
+                            disabled={
+                              deletingId ===
+                              student.id
+                            }
+                            className="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <TrashIcon />
+                            Delete
+                          </button>
+
+                        </td>
+
+                      </tr>
+
+                    )
+                  )
+
                 )}
 
               </tbody>
@@ -600,6 +905,7 @@ export default function ClubStudentsPage() {
               <div className="px-5 py-14 text-center sm:px-6">
 
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-50">
+
                   <svg
                     className="h-5 w-5 text-gray-400"
                     viewBox="0 0 24 24"
@@ -618,6 +924,7 @@ export default function ClubStudentsPage() {
                       d="m20 20-4-4"
                     />
                   </svg>
+
                 </div>
 
                 <p className="mt-3 text-sm font-medium text-gray-700">
@@ -625,42 +932,104 @@ export default function ClubStudentsPage() {
                 </p>
 
                 <p className="mt-1 text-xs text-gray-500">
-                  Try changing your search.
+                  Try changing your search or filters.
                 </p>
 
               </div>
 
             ) : (
 
-              filteredStudents.map((student) => (
+              filteredStudents.map(
+                (student, index) => (
 
-                <div
-                  key={student.id}
-                  className="p-4 sm:p-5"
-                >
+                  <div
+                    key={student.id}
+                    className="p-4 sm:p-5"
+                  >
 
-                  {/* STUDENT HEADER */}
+                    {/* STUDENT HEADER */}
 
-                  <div className="flex items-start justify-between gap-2 sm:gap-3">
+                    <div className="flex items-start justify-between gap-2 sm:gap-3">
 
-                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
 
-                      <StudentPhoto
-                        student={student}
-                      />
+                        {/* S.NO */}
+
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">
+                          #{index + 1}
+                        </span>
+
+                        <StudentPhoto
+                          student={student}
+                        />
+
+                        <div className="min-w-0">
+
+                          <p className="break-words font-semibold text-gray-900">
+                            {student.name}
+                          </p>
+
+                          <p className="mt-0.5 break-all text-xs text-gray-500">
+                            {student.email}
+                          </p>
+
+                          <p className="mt-1 break-words text-sm font-medium text-gray-700">
+                            {student.registerNumber}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+
+                      {/* DELETE ICON */}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStudentToDelete(
+                            student
+                          )
+                        }
+                        disabled={
+                          deletingId === student.id
+                        }
+                        aria-label={`Delete ${student.name}`}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                      >
+                        <TrashIcon />
+                      </button>
+
+                    </div>
+
+
+                    {/* DETAILS */}
+
+                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:gap-4">
 
                       <div className="min-w-0">
 
-                        <p className="break-words font-semibold text-gray-900">
-                          {student.name}
-                        </p>
-
-                        <p className="mt-0.5 break-all text-xs text-gray-500">
-                          {student.email}
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                          Department
                         </p>
 
                         <p className="mt-1 break-words text-sm font-medium text-gray-700">
-                          {student.registerNumber}
+                          {student.department?.code ||
+                            student.department?.name ||
+                            "—"}
+                        </p>
+
+                      </div>
+
+
+                      <div className="min-w-0">
+
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                          Semester
+                        </p>
+
+                        <p className="mt-1 text-sm font-medium text-gray-700">
+                          {student.semester || "—"}
                         </p>
 
                       </div>
@@ -668,78 +1037,28 @@ export default function ClubStudentsPage() {
                     </div>
 
 
-                    {/* DELETE ICON */}
+                    {/* DELETE BUTTON */}
 
                     <button
                       type="button"
                       onClick={() =>
-                        setStudentToDelete(student)
+                        setStudentToDelete(
+                          student
+                        )
                       }
                       disabled={
                         deletingId === student.id
                       }
-                      aria-label={`Delete ${student.name}`}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-red-100 bg-red-50 py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
                     >
                       <TrashIcon />
+                      Delete Student
                     </button>
 
                   </div>
 
-
-                  {/* DETAILS */}
-
-                  <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:gap-4">
-
-                    <div className="min-w-0">
-
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                        Department
-                      </p>
-
-                      <p className="mt-1 break-words text-sm font-medium text-gray-700">
-                        {student.department?.code ||
-                          student.department?.name ||
-                          "—"}
-                      </p>
-
-                    </div>
-
-
-                    <div className="min-w-0">
-
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                        Semester
-                      </p>
-
-                      <p className="mt-1 text-sm font-medium text-gray-700">
-                        {student.semester || "—"}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-
-                  {/* DELETE BUTTON */}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setStudentToDelete(student)
-                    }
-                    disabled={
-                      deletingId === student.id
-                    }
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-red-100 bg-red-50 py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-                  >
-                    <TrashIcon />
-                    Delete Student
-                  </button>
-
-                </div>
-
-              ))
+                )
+              )
 
             )}
 
@@ -930,7 +1249,7 @@ function StudentPhoto({ student }) {
     return (
       <img
         src={student.photoUrl}
-        alt={student.name}
+        alt={student.name || "Student"}
         className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-gray-200"
       />
     );

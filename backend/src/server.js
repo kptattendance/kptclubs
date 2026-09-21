@@ -16,7 +16,7 @@ import hodRoutes from "./routes/hodRoutes.js";
 import clubInchargeRoutes from "./routes/clubInchargeRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import certificateRoutes from "./routes/certificateRoutes.js";
-
+import adminRoutes from "./routes/adminRoutes.js";
 const app = express();
 
 // --------------------------------------------------
@@ -32,7 +32,10 @@ app.use(
 app.use(express.json());
 
 app.use(clerkMiddleware());
-
+app.use(
+  "/api/admin",
+  adminRoutes
+);
 // --------------------------------------------------
 // Test route
 // --------------------------------------------------
