@@ -769,9 +769,6 @@ export default function AddUserPage() {
                     Student
                   </option>
 
-                  <option value="FACULTY">
-                    Faculty
-                  </option>
 
                   <option value="STAFF">
                     Staff
