@@ -9,8 +9,7 @@ export default function ClubInchargeLayout({ children }) {
   const params = useParams();
   const pathname = usePathname();
 
-  const [mobileMenuOpen, setMobileMenuOpen] =
-    useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const clubCode = params.clubCode;
 
@@ -52,44 +51,19 @@ export default function ClubInchargeLayout({ children }) {
 
       {mobileMenuOpen && (
         <div
-          className="
-            fixed
-            inset-0
-            z-40
-            bg-black/50
-            md:hidden
-          "
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={closeMobileMenu}
         />
       )}
-
 
       {/* =================================================
           SIDEBAR
       ================================================= */}
 
       <aside
-        className={`
-          fixed
-          left-0
-          top-0
-          z-50
-          flex
-          h-screen
-          w-64
-          flex-col
-          bg-gray-900
-          text-white
-          transition-transform
-          duration-300
-          ease-in-out
-          md:translate-x-0
-          ${
-            mobileMenuOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
-        `}
+        className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col bg-gray-900 text-white transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
 
         {/* =================================================
@@ -114,25 +88,12 @@ export default function ClubInchargeLayout({ children }) {
               </p>
             </div>
 
-
             {/* MOBILE CLOSE BUTTON */}
 
             <button
               type="button"
               onClick={closeMobileMenu}
-              className="
-                flex
-                h-9
-                w-9
-                items-center
-                justify-center
-                rounded-lg
-                text-xl
-                text-gray-400
-                hover:bg-gray-800
-                hover:text-white
-                md:hidden
-              "
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-xl text-gray-400 hover:bg-gray-800 hover:text-white md:hidden"
               aria-label="Close menu"
             >
               ✕
@@ -142,7 +103,6 @@ export default function ClubInchargeLayout({ children }) {
 
         </div>
 
-
         {/* =================================================
             NAVIGATION
         ================================================= */}
@@ -151,29 +111,18 @@ export default function ClubInchargeLayout({ children }) {
 
           {menuItems.map((item) => {
 
-            const active =
-              pathname === item.path;
+            const active = pathname === item.path;
 
             return (
               <Link
                 key={item.path}
                 href={item.path}
                 onClick={closeMobileMenu}
-                className={`
-                  mb-2
-                  block
-                  rounded-lg
-                  px-4
-                  py-3
-                  text-sm
-                  font-medium
-                  transition
-                  ${
-                    active
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                  }
-                `}
+                className={`mb-2 block rounded-lg px-4 py-3 text-sm font-medium transition ${
+                  active
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                }`}
               >
                 {item.name}
               </Link>
@@ -182,7 +131,6 @@ export default function ClubInchargeLayout({ children }) {
           })}
 
         </nav>
-
 
         {/* =================================================
             USER
@@ -204,7 +152,6 @@ export default function ClubInchargeLayout({ children }) {
 
       </aside>
 
-
       {/* =================================================
           MAIN CONTENT
       ================================================= */}
@@ -215,23 +162,7 @@ export default function ClubInchargeLayout({ children }) {
             MOBILE TOP BAR
         ================================================= */}
 
-        <header
-          className="
-            sticky
-            top-0
-            z-30
-            flex
-            h-16
-            items-center
-            justify-between
-            border-b
-            border-gray-200
-            bg-white
-            px-4
-            shadow-sm
-            md:hidden
-          "
-        >
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm md:hidden">
 
           <div className="flex items-center gap-3">
 
@@ -239,27 +170,12 @@ export default function ClubInchargeLayout({ children }) {
 
             <button
               type="button"
-              onClick={() =>
-                setMobileMenuOpen(true)
-              }
-              className="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-lg
-                border
-                border-gray-200
-                text-xl
-                text-gray-700
-                hover:bg-gray-50
-              "
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-xl text-gray-700 hover:bg-gray-50"
               aria-label="Open menu"
             >
               ☰
             </button>
-
 
             {/* TITLE */}
 
@@ -277,28 +193,17 @@ export default function ClubInchargeLayout({ children }) {
 
           </div>
 
-
           {/* MOBILE USER */}
 
           <UserButton />
 
         </header>
 
-
         {/* =================================================
             PAGE CONTENT
         ================================================= */}
 
-        <div
-          className="
-            w-full
-            px-3
-            py-4
-            sm:px-5
-            sm:py-6
-            md:p-8
-          "
-        >
+        <div className="w-full px-3 py-4 sm:px-5 sm:py-6 md:p-8">
           {children}
         </div>
 
