@@ -396,104 +396,211 @@ export const getAdminRegistrationSummary = async (
         .lean();
 
 
-    // =================================================
-    // CLUB COUNTS
-    // =================================================
 
-    const clubCounts = {};
+   // =====================================================
+// CLUB COUNTS
+// =====================================================
+
+const clubCounts = {};
+
+// -----------------------------------------------------
+// INITIALIZE ALL ACTIVE CLUBS
+// This ensures even clubs with 0 registrations appear.
+// -----------------------------------------------------
+
+clubs.forEach((club) => {
+
+  const clubId = club._id.toString();
+
+  clubCounts[clubId] = {
+
+    clubId: club._id,
+
+    code: club.code,
+
+    name: club.name,
+
+    type: club.type,
+
+    total: 0,
+
+    departments: {},
+
+  };
+
+  // Create department structure for every department
+  departments.forEach((department) => {
+
+    clubCounts[clubId].departments[
+      department._id.toString()
+    ] = {
+
+      departmentId: department._id,
+
+      departmentCode: department.code,
+
+      departmentName: department.name,
+
+      semesters: {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+        6: 0,
+      },
+
+      total: 0,
+
+    };
+
+  });
+
+});
 
 
-    filteredMemberships.forEach(
-      (membership) => {
+// -----------------------------------------------------
+// COUNT FILTERED MEMBERSHIPS
+// -----------------------------------------------------
 
-        const clubId =
-          membership.clubId?._id?.toString();
+filteredMemberships.forEach(
+  (membership) => {
 
-
-        if (!clubId) {
-          return;
-        }
-
-
-        if (!clubCounts[clubId]) {
-
-          clubCounts[clubId] = {
-
-            clubId:
-              membership.clubId._id,
-
-            code:
-              membership.clubId.code,
-
-            name:
-              membership.clubId.name,
-
-            count: 0,
-
-          };
-
-        }
-
-
-        clubCounts[clubId].count++;
-
-      }
-    );
-
-
-    const clubSummary =
-      Object.values(
-        clubCounts
-      ).sort(
-        (a, b) =>
-          a.name.localeCompare(
-            b.name
-          )
+    const student =
+      studentMap.get(
+        membership.studentId?.toString()
       );
 
+    if (!student) {
+      return;
+    }
+
+
+    const clubId =
+      membership.clubId?._id?.toString();
+
+    if (!clubId) {
+      return;
+    }
+
+
+    const clubData =
+      clubCounts[clubId];
+
+    if (!clubData) {
+      return;
+    }
+
+
+    const departmentId =
+      student.departmentId?.toString();
+
+    const semesterNumber =
+      Number(student.semester);
+
+
+    // -------------------------------------------------
+    // CLUB TOTAL
+    // -------------------------------------------------
+
+    clubData.total++;
+
+
+    // -------------------------------------------------
+    // DEPARTMENT DATA
+    // -------------------------------------------------
+
+    const departmentData =
+      clubData.departments[
+        departmentId
+      ];
+
+    if (!departmentData) {
+      return;
+    }
+
+
+    // Only semesters 1-6
+
+    if (
+      semesterNumber < 1 ||
+      semesterNumber > 6
+    ) {
+      return;
+    }
+
+
+    departmentData.semesters[
+      semesterNumber
+    ]++;
+
+    departmentData.total++;
+
+  }
+);
+
+
+// -----------------------------------------------------
+// CONVERT TO ARRAY
+// -----------------------------------------------------
+
+const clubSummary =
+  Object.values(
+    clubCounts
+  ).sort(
+    (a, b) =>
+      a.name.localeCompare(
+        b.name
+      )
+  );
+
+ 
 
     // =================================================
     // RESPONSE
     // =================================================
 
-    return res.status(200).json({
+   // =====================================================
+// RESPONSE
+// =====================================================
 
-      success: true,
+return res.status(200).json({
 
-      filters: {
-        department,
-        semester,
-        club,
-      },
+  success: true,
 
-      stats: {
+  filters: {
+    department,
+    semester,
+    club,
+  },
 
-        grandTotal,
+  stats: {
 
-        totalDepartments:
-          summary.length,
+    grandTotal,
 
-        totalClubs:
-          clubSummary.length,
+    totalDepartments:
+      summary.length,
 
-        semesterTotals,
+    totalClubs:
+      clubSummary.length,
 
-      },
+    semesterTotals,
 
-      departments:
-        summary,
+  },
 
-      clubs:
-        clubSummary,
+  departments:
+    summary,
 
-      availableDepartments:
-        departments,
+  clubs:
+    clubSummary,
 
-      availableClubs:
-        clubs,
+  availableDepartments:
+    departments,
 
-    });
+  availableClubs:
+    clubSummary,
 
+});
   } catch (error) {
 
     console.error(

@@ -8,6 +8,13 @@ export default function RegistrationDashboard() {
   const [clubs, setClubs] = useState([]);
   const [summary, setSummary] = useState([]);
 const [clubSearch, setClubSearch] = useState("");
+
+  // Filters used only for the Club-wise table
+  const [clubTableDepartmentFilter, setClubTableDepartmentFilter] =
+    useState("ALL");
+
+  const [clubTableSemesterFilter, setClubTableSemesterFilter] =
+    useState("ALL");
   const [semesterTotals, setSemesterTotals] = useState({
     1: 0,
     2: 0,
@@ -30,6 +37,167 @@ const [clubSearch, setClubSearch] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // -----------------------------------------------------
+  // Helper: get department data for a club
+  // Handles department IDs/codes/names and array/object data.
+  // -----------------------------------------------------
+  const getClubDepartmentData = (club, department) => {
+    const data = club?.departments;
+
+    if (!data) return {};
+
+    // If backend returns departments as an array
+    if (Array.isArray(data)) {
+      const departmentId = String(department?._id || "").trim();
+      const departmentCode = String(
+        department?.code || department?.departmentCode || ""
+      ).trim().toLowerCase();
+      const departmentName = String(
+        department?.name || department?.departmentName || ""
+      ).trim().toLowerCase();
+
+      return (
+        data.find((item) => {
+          const itemId = String(
+            item?.departmentId || item?._id || item?.department?._id || ""
+          ).trim();
+
+          const itemCode = String(
+            item?.departmentCode ||
+              item?.code ||
+              item?.department?.code ||
+              ""
+          )
+            .trim()
+            .toLowerCase();
+
+          const itemName = String(
+            item?.departmentName ||
+              item?.name ||
+              item?.department?.name ||
+              ""
+          )
+            .trim()
+            .toLowerCase();
+
+          return (
+            (departmentId && itemId === departmentId) ||
+            (departmentCode && itemCode === departmentCode) ||
+            (departmentName && itemName === departmentName)
+          );
+        }) || {}
+      );
+    }
+
+    // If backend returns departments as an object
+    const possibleKeys = [
+      department?._id,
+      department?.code,
+      department?.departmentCode,
+      department?.name,
+      department?.departmentName,
+    ].filter(Boolean);
+
+    for (const key of possibleKeys) {
+      if (data[key] !== undefined) {
+        return data[key] || {};
+      }
+    }
+
+    // Case-insensitive fallback for object keys
+    const keys = Object.keys(data);
+
+    const matchingKey = keys.find((key) => {
+      const normalizedKey = String(key).trim().toLowerCase();
+
+      return possibleKeys.some(
+        (possibleKey) =>
+          normalizedKey ===
+          String(possibleKey).trim().toLowerCase()
+      );
+    });
+
+    return matchingKey ? data[matchingKey] || {} : {};
+  };
+
+  // -----------------------------------------------------
+  // Filter clubs only once.
+  // This also fixes the "No club found" message appearing
+  // when the search box is empty.
+  // -----------------------------------------------------
+  const filteredClubs = clubs.filter((club) => {
+    const search = clubSearch.toLowerCase().trim();
+
+    // Club name/code search
+    if (
+      search &&
+      !(
+        club.name?.toLowerCase().includes(search) ||
+        club.code?.toLowerCase().includes(search)
+      )
+    ) {
+      return false;
+    }
+
+    // Department filter for club table
+    if (clubTableDepartmentFilter !== "ALL") {
+      const selectedDepartment = departments.find(
+        (department) =>
+          String(department._id) ===
+          String(clubTableDepartmentFilter)
+      );
+
+      if (selectedDepartment) {
+        const departmentData = getClubDepartmentData(
+          club,
+          selectedDepartment
+        );
+
+        // When a semester is also selected, check that
+        // this department has registration in that semester.
+        if (clubTableSemesterFilter !== "ALL") {
+          const count =
+            departmentData.semesters?.[
+              clubTableSemesterFilter
+            ] || 0;
+
+          if (Number(count) === 0) return false;
+        } else {
+          if (Number(departmentData.total || 0) === 0) {
+            return false;
+          }
+        }
+      }
+    }
+
+    // Semester filter without a department filter
+    if (
+      clubTableDepartmentFilter === "ALL" &&
+      clubTableSemesterFilter !== "ALL"
+    ) {
+      const hasRegistrationInSemester = departments.some(
+        (department) => {
+          const departmentData = getClubDepartmentData(
+            club,
+            department
+          );
+
+          return (
+            Number(
+              departmentData.semesters?.[
+                clubTableSemesterFilter
+              ] || 0
+            ) > 0
+          );
+        }
+      );
+
+      if (!hasRegistrationInSemester) return false;
+    }
+
+    return true;
+  });
 
   // =====================================================
   // LOAD REGISTRATION DATA
@@ -475,29 +643,109 @@ const [clubSearch, setClubSearch] = useState("");
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">
-          Club-wise registration count by department.
+          Club-wise registration count by department and semester.
         </p>
 
       </div>
 
 
-      {/* SEARCH CLUB */}
+      {/* CLUB TABLE FILTERS */}
 
-      <div className="relative w-full sm:w-72">
+      <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-3">
 
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-          🔍
-        </span>
+        {/* SEARCH */}
 
-        <input
-          type="text"
-          placeholder="Search club..."
-          value={clubSearch}
-          onChange={(e) => setClubSearch(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-        />
+        <div className="relative min-w-0 sm:w-56">
+
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            🔍
+          </span>
+
+          <input
+            type="text"
+            placeholder="Search club..."
+            value={clubSearch}
+            onChange={(e) => setClubSearch(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+
+        </div>
+
+
+        {/* DEPARTMENT FILTER */}
+
+        <select
+          value={clubTableDepartmentFilter}
+          onChange={(e) =>
+            setClubTableDepartmentFilter(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+        >
+
+          <option value="ALL">
+            All Departments
+          </option>
+
+          {departments.map((department) => (
+            <option
+              key={department._id}
+              value={department._id}
+            >
+              {department.code || department.name}
+            </option>
+          ))}
+
+        </select>
+
+
+        {/* SEMESTER FILTER */}
+
+        <select
+          value={clubTableSemesterFilter}
+          onChange={(e) =>
+            setClubTableSemesterFilter(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+        >
+
+          <option value="ALL">
+            All Semesters
+          </option>
+
+          {[1, 2, 3, 4, 5, 6].map(
+            (semester) => (
+              <option
+                key={semester}
+                value={semester}
+              >
+                Semester {semester}
+              </option>
+            )
+          )}
+
+        </select>
 
       </div>
+
+      {/* RESET CLUB TABLE FILTERS */}
+
+      {(clubSearch ||
+        clubTableDepartmentFilter !== "ALL" ||
+        clubTableSemesterFilter !== "ALL") && (
+
+        <button
+          type="button"
+          onClick={() => {
+            setClubSearch("");
+            setClubTableDepartmentFilter("ALL");
+            setClubTableSemesterFilter("ALL");
+          }}
+          className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-800 sm:mt-0"
+        >
+          Clear club filters
+        </button>
+
+      )}
 
     </div>
 
@@ -537,17 +785,24 @@ const [clubSearch, setClubSearch] = useState("");
             </th>
 
 
-            {departments.map((department) => (
+            {departments
+              .filter(
+                (department) =>
+                  clubTableDepartmentFilter === "ALL" ||
+                  String(department._id) ===
+                    String(clubTableDepartmentFilter)
+              )
+              .map((department) => (
 
-              <th
-                key={department._id}
-                className="border-l border-slate-200 px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-indigo-600"
-              >
-                {department.code ||
-                  department.departmentCode}
-              </th>
+                <th
+                  key={department._id}
+                  className="border-l border-slate-200 px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-indigo-600"
+                >
+                  {department.code ||
+                    department.departmentCode}
+                </th>
 
-            ))}
+              ))}
 
 
             <th className="border-l border-slate-200 bg-green-50 px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-green-700">
@@ -561,27 +816,7 @@ const [clubSearch, setClubSearch] = useState("");
 
         <tbody>
 
-          {clubs
-            .filter((club) => {
-
-              const search =
-                clubSearch.toLowerCase().trim();
-
-              if (!search) {
-                return true;
-              }
-
-              return (
-                club.name
-                  ?.toLowerCase()
-                  .includes(search) ||
-                club.code
-                  ?.toLowerCase()
-                  .includes(search)
-              );
-
-            })
-            .map((club, index) => (
+          {filteredClubs.map((club, index) => (
 
               <tr
                 key={club._id}
@@ -612,46 +847,50 @@ const [clubSearch, setClubSearch] = useState("");
 
                 {/* DEPARTMENT COUNTS */}
 
-                {departments.map((department) => {
+                {departments
+                  .filter(
+                    (department) =>
+                      clubTableDepartmentFilter === "ALL" ||
+                      String(department._id) ===
+                        String(clubTableDepartmentFilter)
+                  )
+                  .map((department) => {
 
-                  const departmentData =
-                    club.departments?.[
-                      department._id
-                    ] ||
-                    club.departments?.[
-                      department.code
-                    ] ||
-                    {};
+                    const departmentData =
+                      getClubDepartmentData(
+                        club,
+                        department
+                      );
 
-                  const count =
-                    semesterFilter === "ALL"
-                      ? departmentData.total || 0
-                      : departmentData.semesters?.[
-                          semesterFilter
-                        ] || 0;
+                    const count =
+                      clubTableSemesterFilter === "ALL"
+                        ? departmentData.total || 0
+                        : departmentData.semesters?.[
+                            clubTableSemesterFilter
+                          ] || 0;
 
-                  return (
+                    return (
 
-                    <td
-                      key={`${club._id}-${department._id}`}
-                      className="border-l border-slate-100 px-5 py-4 text-center"
-                    >
-
-                      <span
-                        className={`inline-flex min-w-10 justify-center rounded-lg px-3 py-2 text-sm font-bold ${
-                          count > 0
-                            ? "bg-indigo-50 text-indigo-700"
-                            : "text-slate-300"
-                        }`}
+                      <td
+                        key={`${club._id}-${department._id}`}
+                        className="border-l border-slate-100 px-5 py-4 text-center"
                       >
-                        {count}
-                      </span>
 
-                    </td>
+                        <span
+                          className={`inline-flex min-w-10 justify-center rounded-lg px-3 py-2 text-sm font-bold ${
+                            count > 0
+                              ? "bg-indigo-50 text-indigo-700"
+                              : "text-slate-300"
+                          }`}
+                        >
+                          {count}
+                        </span>
 
-                  );
+                      </td>
 
-                })}
+                    );
+
+                  })}
 
 
                 {/* CLUB TOTAL */}
@@ -660,32 +899,36 @@ const [clubSearch, setClubSearch] = useState("");
 
                   <span className="inline-flex rounded-lg bg-green-100 px-4 py-2 font-extrabold text-green-700">
 
-                    {departments.reduce(
-                      (total, department) => {
+                    {departments
+                      .filter(
+                        (department) =>
+                          clubTableDepartmentFilter === "ALL" ||
+                          String(department._id) ===
+                            String(clubTableDepartmentFilter)
+                      )
+                      .reduce(
+                        (total, department) => {
 
-                        const departmentData =
-                          club.departments?.[
-                            department._id
-                          ] ||
-                          club.departments?.[
-                            department.code
-                          ] ||
-                          {};
+                          const departmentData =
+                            getClubDepartmentData(
+                              club,
+                              department
+                            );
 
-                        const count =
-                          semesterFilter === "ALL"
-                            ? departmentData.total || 0
-                            : departmentData.semesters?.[
-                                semesterFilter
-                              ] || 0;
+                          const count =
+                            clubTableSemesterFilter === "ALL"
+                              ? departmentData.total || 0
+                              : departmentData.semesters?.[
+                                  clubTableSemesterFilter
+                                ] || 0;
 
-                        return (
-                          total + Number(count)
-                        );
+                          return (
+                            total + Number(count)
+                          );
 
-                      },
-                      0
-                    )}
+                        },
+                        0
+                      )}
 
                   </span>
 
@@ -698,30 +941,19 @@ const [clubSearch, setClubSearch] = useState("");
 
           {/* NO SEARCH RESULT */}
 
-          {clubs.filter((club) => {
-
-            const search =
-              clubSearch.toLowerCase().trim();
-
-            if (!search) {
-              return false;
-            }
-
-            return (
-              club.name
-                ?.toLowerCase()
-                .includes(search) ||
-              club.code
-                ?.toLowerCase()
-                .includes(search)
-            );
-
-          }).length === 0 && (
+          {filteredClubs.length === 0 && (
 
             <tr>
 
               <td
-                colSpan={departments.length + 3}
+                colSpan={
+                  departments.filter(
+                    (department) =>
+                      clubTableDepartmentFilter === "ALL" ||
+                      String(department._id) ===
+                        String(clubTableDepartmentFilter)
+                  ).length + 3
+                }
                 className="px-5 py-12 text-center"
               >
 
@@ -756,48 +988,84 @@ const [clubSearch, setClubSearch] = useState("");
             </td>
 
 
-            {departments.map((department) => {
+            {departments
+              .filter(
+                (department) =>
+                  clubTableDepartmentFilter === "ALL" ||
+                  String(department._id) ===
+                    String(clubTableDepartmentFilter)
+              )
+              .map((department) => {
 
-              let total = 0;
+                let total = 0;
 
-              clubs.forEach((club) => {
+                filteredClubs.forEach((club) => {
 
-                const departmentData =
-                  club.departments?.[
-                    department._id
-                  ] ||
-                  club.departments?.[
-                    department.code
-                  ] ||
-                  {};
+                  const departmentData =
+                    getClubDepartmentData(
+                      club,
+                      department
+                    );
 
-                const count =
-                  semesterFilter === "ALL"
-                    ? departmentData.total || 0
-                    : departmentData.semesters?.[
-                        semesterFilter
-                      ] || 0;
+                  const count =
+                    clubTableSemesterFilter === "ALL"
+                      ? departmentData.total || 0
+                      : departmentData.semesters?.[
+                          clubTableSemesterFilter
+                        ] || 0;
 
-                total += Number(count);
+                  total += Number(count);
 
-              });
+                });
 
-              return (
+                return (
 
-                <td
-                  key={`total-${department._id}`}
-                  className="border-l border-slate-200 px-5 py-4 text-center font-extrabold text-indigo-700"
-                >
-                  {total}
-                </td>
+                  <td
+                    key={`total-${department._id}`}
+                    className="border-l border-slate-200 px-5 py-4 text-center font-extrabold text-indigo-700"
+                  >
+                    {total}
+                  </td>
 
-              );
+                );
 
-            })}
+              })}
 
 
             <td className="border-l border-slate-200 bg-green-50 px-5 py-4 text-center text-lg font-extrabold text-green-700">
-              {grandTotal}
+              {filteredClubs.reduce(
+                (grand, club) =>
+                  grand +
+                  departments
+                    .filter(
+                      (department) =>
+                        clubTableDepartmentFilter === "ALL" ||
+                        String(department._id) ===
+                          String(clubTableDepartmentFilter)
+                    )
+                    .reduce(
+                      (total, department) => {
+
+                        const departmentData =
+                          getClubDepartmentData(
+                            club,
+                            department
+                          );
+
+                        const count =
+                          clubTableSemesterFilter === "ALL"
+                            ? departmentData.total || 0
+                            : departmentData.semesters?.[
+                                clubTableSemesterFilter
+                              ] || 0;
+
+                        return total + Number(count);
+
+                      },
+                      0
+                    ),
+                0
+              )}
             </td>
 
           </tr>
