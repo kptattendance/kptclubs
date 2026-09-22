@@ -17,34 +17,19 @@ export default function AuthRedirectPage() {
 
   useEffect(() => {
     if (!isLoaded) {
-      console.log("Clerk is still loading...");
       return;
     }
 
-    console.log("================================");
-    console.log("CLERK AUTH REDIRECT");
-    console.log("isLoaded:", isLoaded);
-    console.log("isSignedIn:", isSignedIn);
-    console.log("================================");
 
     const redirectUser = async () => {
       try {
         if (!isSignedIn) {
-          console.log("User is NOT signed in");
           router.replace("/sign-in");
           return;
         }
 
-        console.log("Clerk session exists.");
-
-        console.log("Getting Clerk token...");
-
         const token = await getToken();
 
-        console.log(
-          "Token received:",
-          token ? "YES" : "NO"
-        );
 
         if (!token) {
           console.error(
@@ -55,17 +40,12 @@ export default function AuthRedirectPage() {
           return;
         }
 
-        console.log(
-          "Calling getCurrentUser()..."
-        );
+        
 
         const data =
           await getCurrentUser(getToken);
 
-        console.log(
-          "Backend response:",
-          data
-        );
+       
 
         const user = data?.user;
 
@@ -78,26 +58,17 @@ export default function AuthRedirectPage() {
           return;
         }
 
-        console.log(
-          "Application user:",
-          user
-        );
+       
 
-        console.log(
-          "Application role:",
-          user.role
-        );
 
         // ADMIN
         if (user.role === "ADMIN") {
-          console.log("Redirecting to ADMIN");
           router.replace("/admin");
           return;
         }
 
         // HOD
         if (user.role === "HOD") {
-          console.log("Redirecting to HOD");
           router.replace("/hod");
           return;
         }
@@ -115,10 +86,7 @@ export default function AuthRedirectPage() {
 
           const clubCode = user.clubId.code;
 
-          console.log(
-            "Redirecting Club In-Charge:",
-            clubCode
-          );
+          
 
           router.replace(
             `/club-incharge/${clubCode.toLowerCase()}`
@@ -140,10 +108,7 @@ export default function AuthRedirectPage() {
 
           const clubCode = user.clubId.code;
 
-          console.log(
-            "Redirecting Club Officer:",
-            clubCode
-          );
+        
 
           router.replace(
             `/club-officer/${clubCode.toLowerCase()}`
@@ -154,9 +119,7 @@ export default function AuthRedirectPage() {
 
         // STUDENT
         if (user.role === "STUDENT") {
-          console.log(
-            "Redirecting Student"
-          );
+       
 
           router.replace("/student");
           return;

@@ -32,7 +32,6 @@ export default function ClubInchargeDashboard() {
         }
       );
 
-      console.log(response.data);
 
       setDashboard(response.data);
     } catch (error) {

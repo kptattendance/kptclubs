@@ -38,10 +38,7 @@ export default function HODApplicationsPage() {
         }
       );
 
-      console.log(
-        "HOD applications:",
-        response.data
-      );
+      
 
       if (response.data?.success) {
         setApplications(

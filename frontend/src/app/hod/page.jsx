@@ -47,10 +47,7 @@ export default function HODDashboard() {
           }
         );
 
-      console.log(
-        "HOD dashboard:",
-        response.data
-      );
+   
 
       setData(
         response.data
