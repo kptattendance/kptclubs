@@ -790,7 +790,7 @@ export default function AttendancePage() {
                                   <div className="min-w-0">
 
                                     <p className="font-semibold text-gray-900">
-                                      {student.name}
+                                      {student.name?.toUpperCase()}
                                     </p>
 
                                     <p className="max-w-xs truncate text-xs text-gray-500">
@@ -902,7 +902,7 @@ export default function AttendancePage() {
                             <div className="min-w-0 flex-1">
 
                               <p className="truncate text-sm font-semibold text-gray-900">
-                                {student.name}
+                                {student.name?.toUpperCase()}
                               </p>
 
                               <p className="truncate text-xs text-gray-500">

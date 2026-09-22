@@ -9,6 +9,88 @@ export default function RegistrationDashboard() {
   const [summary, setSummary] = useState([]);
 const [clubSearch, setClubSearch] = useState("");
 
+
+// =====================================================
+// MANUAL STUDENT STRENGTH
+// Edit these values whenever required
+// =====================================================
+
+const MANUAL_STRENGTH = {
+  AT: {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 57,
+    6: 0,
+  },
+
+  CH: {
+    1: 63,
+    2: 0,
+    3: 60,
+    4: 0,
+    5: 63,
+    6: 0,
+  },
+
+  CE: {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+  },
+
+  CS: {
+    1: 60,
+    2: 58,
+    3: 62,
+    4: 59,
+    5: 55,
+    6: 61,
+  },
+
+  EE: {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+  },
+
+  EC: {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+  },
+
+  ME: {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+  },
+
+  PO: {
+    1: 41,
+    2: 0,
+    3: 29,
+    4: 0,
+    5: 31,
+    6: 0,
+  },
+
+
+};
+
   // Filters used only for the Club-wise table
   const [clubTableDepartmentFilter, setClubTableDepartmentFilter] =
     useState("ALL");
@@ -38,10 +120,25 @@ const [clubSearch, setClubSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // -----------------------------------------------------
-  // Helper: get department data for a club
-  // Handles department IDs/codes/names and array/object data.
-  // -----------------------------------------------------
+
+const getDepartmentStrength = (departmentCode, semester) => {
+  const code = String(departmentCode || "")
+    .trim()
+    .toUpperCase();
+
+  return Number(
+    MANUAL_STRENGTH[code]?.[semester] || 0
+  );
+};
+
+const getDepartmentTotalStrength = (departmentCode) => {
+  return (
+    getDepartmentStrength(departmentCode, 1) +
+    getDepartmentStrength(departmentCode, 3) +
+    getDepartmentStrength(departmentCode, 5)
+  );
+};
+
   const getClubDepartmentData = (club, department) => {
     const data = club?.departments;
 
@@ -466,152 +563,283 @@ const [clubSearch, setClubSearch] = useState("");
 
             <div className="overflow-x-auto">
 
-              <table className="w-full min-w-[850px]">
+          <table className="w-full min-w-[850px]">
 
-                <thead className="bg-slate-50">
+  <thead className="bg-slate-50">
 
-                  <tr className="border-b">
+    <tr className="border-b">
 
-                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                      #
-                    </th>
+      <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+        #
+      </th>
 
-                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Department
-                    </th>
+      <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+        Department
+      </th>
 
-                    {[1, 2, 3, 4, 5, 6].map(
-                      (semester) => (
+      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+        Year 1
+      </th>
 
-                        <th
-                          key={semester}
-                          className="px-4 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-500"
-                        >
-                          Sem {semester}
-                        </th>
+      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+        Year 2
+      </th>
 
-                      )
-                    )}
+      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+        Year 3
+      </th>
 
-                    <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-indigo-600">
-                      Total
-                    </th>
+      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-indigo-600">
+        Total
+      </th>
 
-                  </tr>
+    </tr>
 
-                </thead>
-
-
-                <tbody>
-
-                  {summary.map(
-                    (department, index) => (
-
-                      <tr
-                        key={
-                          department.departmentId
-                        }
-                        className="border-b border-slate-100 hover:bg-slate-50"
-                      >
-
-                        <td className="px-5 py-4 text-sm text-slate-500">
-                          {index + 1}
-                        </td>
-
-                        <td className="px-5 py-4">
-
-                          <p className="font-bold text-slate-800">
-                            {department.departmentCode}
-                          </p>
-
-                          <p className="max-w-[220px] text-xs text-slate-500">
-                            {department.departmentName}
-                          </p>
-
-                        </td>
+  </thead>
 
 
-                        {[1, 2, 3, 4, 5, 6].map(
-                          (semester) => (
+  <tbody>
 
-                            <td
-                              key={semester}
-                              className="px-4 py-4 text-center"
-                            >
+    {summary.map((department, index) => {
 
-                              <span
-                                className={`inline-flex min-w-10 justify-center rounded-lg px-3 py-2 text-sm font-bold ${
-                                  department.semesters[
-                                    semester
-                                  ] > 0
-                                    ? "bg-indigo-50 text-indigo-700"
-                                    : "text-slate-300"
-                                }`}
-                              >
-                                {
-                                  department.semesters[
-                                    semester
-                                  ]
-                                }
-                              </span>
+      const code = department.departmentCode;
 
-                            </td>
+      // Current odd semester:
+      // Year 1 = Sem 1
+      // Year 2 = Sem 3
+      // Year 3 = Sem 5
 
-                          )
-                        )}
+      const year1Strength =
+        getDepartmentStrength(code, 1);
+
+      const year2Strength =
+        getDepartmentStrength(code, 3);
+
+      const year3Strength =
+        getDepartmentStrength(code, 5);
+
+      const totalStrength =
+        year1Strength +
+        year2Strength +
+        year3Strength;
+
+      const year1Registered =
+        Number(
+          department.semesters?.[1] || 0
+        );
+
+      const year2Registered =
+        Number(
+          department.semesters?.[3] || 0
+        );
+
+      const year3Registered =
+        Number(
+          department.semesters?.[5] || 0
+        );
+
+      return (
+
+        <tr
+          key={department.departmentId}
+          className="border-b border-slate-100 hover:bg-slate-50"
+        >
+
+          {/* SL NO */}
+
+          <td className="px-5 py-4 text-sm text-slate-500">
+            {index + 1}
+          </td>
 
 
-                        <td className="px-5 py-4 text-center">
+          {/* DEPARTMENT */}
 
-                          <span className="inline-flex rounded-lg bg-green-50 px-4 py-2 font-extrabold text-green-700">
-                            {department.total}
-                          </span>
+          <td className="px-5 py-4">
 
-                        </td>
+            <p className="font-bold text-slate-800">
+              {code}
+            </p>
 
-                      </tr>
+            <p className="max-w-[220px] text-xs text-slate-500">
+              {department.departmentName}
+            </p>
 
-                    )
-                  )}
+          </td>
 
 
-                  {/* GRAND TOTAL */}
+          {/* YEAR 1 = SEM 1 */}
 
-                  <tr className="bg-indigo-50">
+          <td className="px-5 py-4 text-center">
 
-                    <td
-                      colSpan="2"
-                      className="px-5 py-4 font-extrabold text-indigo-800"
-                    >
-                      GRAND TOTAL
-                    </td>
+            <span
+              className={`inline-flex min-w-[80px] justify-center rounded-lg px-3 py-2 text-sm font-bold ${
+                year1Registered > 0
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "bg-slate-50 text-slate-500"
+              }`}
+            >
+              {year1Registered} / {year1Strength}
+            </span>
 
-                    {[1, 2, 3, 4, 5, 6].map(
-                      (semester) => (
+          </td>
 
-                        <td
-                          key={semester}
-                          className="px-4 py-4 text-center font-extrabold text-indigo-700"
-                        >
-                          {
-                            semesterTotals[
-                              semester
-                            ]
-                          }
-                        </td>
 
-                      )
-                    )}
+          {/* YEAR 2 = SEM 3 */}
 
-                    <td className="px-5 py-4 text-center text-lg font-extrabold text-indigo-800">
-                      {grandTotal}
-                    </td>
+          <td className="px-5 py-4 text-center">
 
-                  </tr>
+            <span
+              className={`inline-flex min-w-[80px] justify-center rounded-lg px-3 py-2 text-sm font-bold ${
+                year2Registered > 0
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "bg-slate-50 text-slate-500"
+              }`}
+            >
+              {year2Registered} / {year2Strength}
+            </span>
 
-                </tbody>
+          </td>
 
-              </table>
+
+          {/* YEAR 3 = SEM 5 */}
+
+          <td className="px-5 py-4 text-center">
+
+            <span
+              className={`inline-flex min-w-[80px] justify-center rounded-lg px-3 py-2 text-sm font-bold ${
+                year3Registered > 0
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "bg-slate-50 text-slate-500"
+              }`}
+            >
+              {year3Registered} / {year3Strength}
+            </span>
+
+          </td>
+
+
+          {/* TOTAL */}
+
+          <td className="px-5 py-4 text-center">
+
+            <span className="inline-flex min-w-[90px] justify-center rounded-lg bg-green-50 px-4 py-2 font-extrabold text-green-700">
+
+              {Number(department.total || 0)}
+              {" / "}
+              {totalStrength}
+
+            </span>
+
+          </td>
+
+        </tr>
+
+      );
+
+    })}
+
+
+    {/* =================================================
+        GRAND TOTAL
+    ================================================= */}
+
+    <tr className="bg-indigo-50">
+
+      <td
+        colSpan="2"
+        className="px-5 py-4 font-extrabold text-indigo-800"
+      >
+        GRAND TOTAL
+      </td>
+
+
+      {/* YEAR 1 TOTAL */}
+
+      <td className="px-5 py-4 text-center font-extrabold text-indigo-700">
+
+        {Number(semesterTotals?.[1] || 0)}
+        {" / "}
+
+        {summary.reduce(
+          (total, department) =>
+            total +
+            getDepartmentStrength(
+              department.departmentCode,
+              1
+            ),
+          0
+        )}
+
+      </td>
+
+
+      {/* YEAR 2 TOTAL */}
+
+      <td className="px-5 py-4 text-center font-extrabold text-indigo-700">
+
+        {Number(semesterTotals?.[3] || 0)}
+        {" / "}
+
+        {summary.reduce(
+          (total, department) =>
+            total +
+            getDepartmentStrength(
+              department.departmentCode,
+              3
+            ),
+          0
+        )}
+
+      </td>
+
+
+      {/* YEAR 3 TOTAL */}
+
+      <td className="px-5 py-4 text-center font-extrabold text-indigo-700">
+
+        {Number(semesterTotals?.[5] || 0)}
+        {" / "}
+
+        {summary.reduce(
+          (total, department) =>
+            total +
+            getDepartmentStrength(
+              department.departmentCode,
+              5
+            ),
+          0
+        )}
+
+      </td>
+
+
+      {/* GRAND TOTAL */}
+
+      <td className="px-5 py-4 text-center">
+
+        <span className="inline-flex min-w-[100px] justify-center rounded-lg bg-green-100 px-4 py-2 text-lg font-extrabold text-green-700">
+
+          {Number(grandTotal || 0)}
+          {" / "}
+
+          {summary.reduce(
+            (total, department) =>
+              total +
+              getDepartmentTotalStrength(
+                department.departmentCode
+              ),
+            0
+          )}
+
+        </span>
+
+      </td>
+
+    </tr>
+
+  </tbody>
+
+</table>
 
             </div>
 

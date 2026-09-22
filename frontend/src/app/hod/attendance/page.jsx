@@ -636,7 +636,7 @@ export default function AttendancePage() {
                                 <div className="min-w-0 max-w-[220px]">
 
                                   <p className="truncate font-medium text-gray-800">
-                                    {student.name}
+                                    {student.name?.toUpperCase()}
                                   </p>
 
                                   <p className="truncate text-xs text-gray-400">

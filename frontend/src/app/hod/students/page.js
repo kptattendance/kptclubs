@@ -516,7 +516,7 @@ export default function HODStudentsPage() {
                                 )}
 
                                 <span className="font-medium text-gray-800">
-                                  {student.name ||
+                                  {student.name?.toUpperCase() ||
                                     "-"}
                                 </span>
 

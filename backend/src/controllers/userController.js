@@ -384,38 +384,126 @@ export const getCurrentUser = async (
 // GET ALL USERS
 // ============================================================
 
-export const getUsers = async (
-  req,
-  res
-) => {
-
+export const getUsers = async (req, res) => {
   try {
 
-    const users =
-      await User.find()
-        .populate(
-          "departmentId",
-          "code name"
-        )
-        .populate(
-          "clubId",
-          "code name type"
-        )
-        .sort({
-          createdAt: -1,
-        });
+    // --------------------------------------------------------
+    // GET ALL USERS
+    // --------------------------------------------------------
 
+    const users = await User.find()
+      .populate(
+        "departmentId",
+        "code name"
+      )
+      .populate(
+        "clubId",
+        "code name type"
+      )
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
+
+
+    // --------------------------------------------------------
+    // GET USER IDS
+    // --------------------------------------------------------
+
+    const userIds = users.map(
+      (user) => user._id
+    );
+
+
+    // --------------------------------------------------------
+    // GET STUDENT PROFILES
+    //
+    // StudentProfile.userId points to User._id
+    // --------------------------------------------------------
+
+    const studentProfiles =
+      await StudentProfile.find({
+        userId: {
+          $in: userIds,
+        },
+      })
+        .select(
+          "userId semester registerNumber"
+        )
+        .lean();
+
+
+    // --------------------------------------------------------
+    // CREATE STUDENT PROFILE MAP
+    // --------------------------------------------------------
+
+    const studentProfileMap =
+      new Map();
+
+    studentProfiles.forEach(
+      (studentProfile) => {
+
+        studentProfileMap.set(
+          studentProfile.userId.toString(),
+          studentProfile
+        );
+
+      }
+    );
+
+
+    // --------------------------------------------------------
+    // ADD STUDENT DETAILS TO USER
+    // --------------------------------------------------------
+
+    const usersWithStudentDetails =
+      users.map((user) => {
+
+        const studentProfile =
+          studentProfileMap.get(
+            user._id.toString()
+          );
+
+
+        // Student users get semester and register number
+        if (studentProfile) {
+
+          return {
+            ...user,
+
+            semester:
+              studentProfile.semester,
+
+            registerNumber:
+              studentProfile.registerNumber,
+
+          };
+
+        }
+
+
+        // Non-student users remain unchanged
+        return user;
+
+      });
+
+
+    // --------------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------------
 
     return res.status(200).json({
 
       success: true,
 
       count:
-        users.length,
+        usersWithStudentDetails.length,
 
-      users,
+      users:
+        usersWithStudentDetails,
 
     });
+
 
   } catch (error) {
 
@@ -424,14 +512,18 @@ export const getUsers = async (
       error
     );
 
+
     return res.status(500).json({
+
       success: false,
+
       message:
         "Failed to fetch users",
+
     });
+
   }
 };
-
 
 
 // ============================================================

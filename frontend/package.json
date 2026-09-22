@@ -2,9 +2,8 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  
   "scripts": {
-  "dev": "node server.mjs",
+    "dev": "node server.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -16,7 +15,8 @@
     "next-cloudinary": "^6.18.8",
     "postcss": "^8.5.26",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

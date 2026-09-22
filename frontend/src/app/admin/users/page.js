@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
+import * as XLSX from "xlsx";
 import { useRouter } from "next/navigation";
 
 export default function AdminUsersPage() {
@@ -14,15 +15,30 @@ export default function AdminUsersPage() {
   const [error, setError] = useState("");
 
   // =====================================================
-  // FILTER / SEARCH / SORT STATES
+  // SEARCH
   // =====================================================
 
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState("ALL");
-  const [departmentFilter, setDepartmentFilter] = useState("ALL");
-  const [clubFilter, setClubFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // =====================================================
+  // FILTERS
+  // =====================================================
+
+  const [departmentFilter, setDepartmentFilter] =
+    useState("ALL");
+
+  const [semesterFilter, setSemesterFilter] =
+    useState("ALL");
+
+  const [roleFilter, setRoleFilter] =
+    useState("ALL");
+
+  const [clubFilter, setClubFilter] =
+    useState("ALL");
+
+  // =====================================================
+  // SORT
+  // =====================================================
 
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -48,7 +64,9 @@ export default function AdminUsersPage() {
       });
 
       setUsers((currentUsers) =>
-        currentUsers.filter((user) => user._id !== userId)
+        currentUsers.filter(
+          (user) => user._id !== userId
+        )
       );
     } catch (error) {
       console.error(
@@ -103,7 +121,7 @@ export default function AdminUsersPage() {
   }, [getToken]);
 
   // =====================================================
-  // UNIQUE FILTER OPTIONS
+  // UNIQUE ROLES
   // =====================================================
 
   const roles = useMemo(() => {
@@ -116,15 +134,9 @@ export default function AdminUsersPage() {
     ].sort();
   }, [users]);
 
-  const userTypes = useMemo(() => {
-    return [
-      ...new Set(
-        users
-          .map((user) => user.userType)
-          .filter(Boolean)
-      ),
-    ].sort();
-  }, [users]);
+  // =====================================================
+  // UNIQUE DEPARTMENTS
+  // =====================================================
 
   const departments = useMemo(() => {
     return [
@@ -132,14 +144,21 @@ export default function AdminUsersPage() {
         users
           .filter((user) => user.departmentId)
           .map((user) => [
-            user.departmentId._id || user.departmentId.code,
+            user.departmentId._id ||
+              user.departmentId.code,
             user.departmentId,
           ])
       ).values(),
     ].sort((a, b) =>
-      `${a.code || ""}`.localeCompare(`${b.code || ""}`)
+      `${a.code || ""}`.localeCompare(
+        `${b.code || ""}`
+      )
     );
   }, [users]);
+
+  // =====================================================
+  // UNIQUE CLUBS
+  // =====================================================
 
   const clubs = useMemo(() => {
     return [
@@ -147,14 +166,64 @@ export default function AdminUsersPage() {
         users
           .filter((user) => user.clubId)
           .map((user) => [
-            user.clubId._id || user.clubId.code,
+            user.clubId._id ||
+              user.clubId.code,
             user.clubId,
           ])
       ).values(),
     ].sort((a, b) =>
-      `${a.code || ""}`.localeCompare(`${b.code || ""}`)
+      `${a.code || ""}`.localeCompare(
+        `${b.code || ""}`
+      )
     );
   }, [users]);
+
+  // =====================================================
+  // SEMESTER
+  // =====================================================
+
+  const getSemester = (user) => {
+    const semester =
+      user.semester ??
+      user.sem ??
+      user.currentSemester ??
+      user.studentProfile?.semester ??
+      user.student?.semester;
+
+    return semester === undefined ||
+      semester === null ||
+      semester === ""
+      ? "-"
+      : String(semester);
+  };
+
+  const getSemesterValue = (user) => {
+    const semester =
+      user.semester ??
+      user.sem ??
+      user.currentSemester ??
+      user.studentProfile?.semester ??
+      user.student?.semester;
+
+    return semester === undefined ||
+      semester === null ||
+      semester === ""
+      ? ""
+      : String(semester);
+  };
+
+  // =====================================================
+  // REGISTER NUMBER
+  // =====================================================
+
+  const getRegisterNumber = (user) => {
+    return (
+      user.registerNumber ||
+      user.rollNumber ||
+      user.regNo ||
+      "-"
+    );
+  };
 
   // =====================================================
   // FILTER + SEARCH + SORT
@@ -163,72 +232,81 @@ export default function AdminUsersPage() {
   const filteredUsers = useMemo(() => {
     let result = [...users];
 
-    const searchText = search.trim().toLowerCase();
+    const searchText =
+      search.trim().toLowerCase();
 
+    // ---------------------------------------------------
     // SEARCH
+    // Name / Register No / Phone / Email
+    // ---------------------------------------------------
+
     if (searchText) {
       result = result.filter((user) => {
-        const rollNumber =
-          user.rollNumber ||
+        const registerNumber =
           user.registerNumber ||
+          user.rollNumber ||
           user.regNo ||
           "";
 
-        const department = user.departmentId
-          ? `${user.departmentId.code || ""} ${
-              user.departmentId.name || ""
-            }`
-          : "";
-
-        const club = user.clubId
-          ? `${user.clubId.code || ""} ${
-              user.clubId.name || ""
-            }`
-          : "";
-
         const searchableText = [
           user.name,
-          user.email,
+          registerNumber,
           user.phone,
-          rollNumber,
-          user.role,
-          user.userType,
-          department,
-          club,
+          user.email,
         ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
 
-        return searchableText.includes(searchText);
-      });
-    }
-
-    // ROLE
-    if (roleFilter !== "ALL") {
-      result = result.filter(
-        (user) => user.role === roleFilter
-      );
-    }
-
-    // USER TYPE
-    if (typeFilter !== "ALL") {
-      result = result.filter(
-        (user) => user.userType === typeFilter
-      );
-    }
-
-    // DEPARTMENT
-    if (departmentFilter !== "ALL") {
-      result = result.filter((user) => {
-        return (
-          user.departmentId?._id === departmentFilter ||
-          user.departmentId?.code === departmentFilter
+        return searchableText.includes(
+          searchText
         );
       });
     }
 
+    // ---------------------------------------------------
+    // DEPARTMENT
+    // ---------------------------------------------------
+
+    if (departmentFilter !== "ALL") {
+      result = result.filter((user) => {
+        return (
+          user.departmentId?._id ===
+            departmentFilter ||
+          user.departmentId?.code ===
+            departmentFilter
+        );
+      });
+    }
+
+    // ---------------------------------------------------
+    // SEMESTER
+    // ---------------------------------------------------
+
+    if (semesterFilter !== "ALL") {
+      result = result.filter((user) => {
+        return (
+          getSemesterValue(user) ===
+          String(semesterFilter)
+        );
+      });
+    }
+
+    // ---------------------------------------------------
+    // ROLE
+    // ---------------------------------------------------
+
+    if (roleFilter !== "ALL") {
+      result = result.filter(
+        (user) =>
+          user.role === roleFilter
+      );
+    }
+
+    // ---------------------------------------------------
     // CLUB
+    // ---------------------------------------------------
+
     if (clubFilter !== "ALL") {
       result = result.filter((user) => {
         return (
@@ -238,22 +316,10 @@ export default function AdminUsersPage() {
       });
     }
 
-    // STATUS
-    if (statusFilter !== "ALL") {
-      result = result.filter((user) => {
-        if (statusFilter === "ACTIVE") {
-          return user.isActive === true;
-        }
-
-        if (statusFilter === "INACTIVE") {
-          return user.isActive === false;
-        }
-
-        return true;
-      });
-    }
-
+    // ---------------------------------------------------
     // SORT
+    // ---------------------------------------------------
+
     result.sort((a, b) => {
       let valueA = "";
       let valueB = "";
@@ -264,22 +330,21 @@ export default function AdminUsersPage() {
           valueB = b.name || "";
           break;
 
-        case "rollNumber":
-          valueA =
-            a.rollNumber ||
-            a.registerNumber ||
-            a.regNo ||
-            "";
-          valueB =
-            b.rollNumber ||
-            b.registerNumber ||
-            b.regNo ||
-            "";
+        case "register":
+          valueA = getRegisterNumber(a);
+          valueB = getRegisterNumber(b);
           break;
 
-        case "email":
-          valueA = a.email || "";
-          valueB = b.email || "";
+        case "semester":
+          valueA = getSemesterValue(a);
+          valueB = getSemesterValue(b);
+          break;
+
+        case "department":
+          valueA =
+            a.departmentId?.code || "";
+          valueB =
+            b.departmentId?.code || "";
           break;
 
         case "role":
@@ -287,19 +352,11 @@ export default function AdminUsersPage() {
           valueB = b.role || "";
           break;
 
-        case "department":
-          valueA = a.departmentId?.code || "";
-          valueB = b.departmentId?.code || "";
-          break;
-
         case "club":
-          valueA = a.clubId?.code || "";
-          valueB = b.clubId?.code || "";
-          break;
-
-        case "status":
-          valueA = a.isActive ? "Active" : "Inactive";
-          valueB = b.isActive ? "Active" : "Inactive";
+          valueA =
+            a.clubId?.code || "";
+          valueB =
+            b.clubId?.code || "";
           break;
 
         default:
@@ -307,15 +364,16 @@ export default function AdminUsersPage() {
           valueB = b.name || "";
       }
 
-      const comparison = String(valueA)
-        .toLowerCase()
-        .localeCompare(
-          String(valueB).toLowerCase(),
-          undefined,
-          {
-            numeric: true,
-          }
-        );
+      const comparison =
+        String(valueA)
+          .toLowerCase()
+          .localeCompare(
+            String(valueB).toLowerCase(),
+            undefined,
+            {
+              numeric: true,
+            }
+          );
 
       return sortOrder === "asc"
         ? comparison
@@ -326,11 +384,10 @@ export default function AdminUsersPage() {
   }, [
     users,
     search,
-    roleFilter,
-    typeFilter,
     departmentFilter,
+    semesterFilter,
+    roleFilter,
     clubFilter,
-    statusFilter,
     sortBy,
     sortOrder,
   ]);
@@ -341,22 +398,20 @@ export default function AdminUsersPage() {
 
   const clearFilters = () => {
     setSearch("");
-    setRoleFilter("ALL");
-    setTypeFilter("ALL");
     setDepartmentFilter("ALL");
+    setSemesterFilter("ALL");
+    setRoleFilter("ALL");
     setClubFilter("ALL");
-    setStatusFilter("ALL");
     setSortBy("name");
     setSortOrder("asc");
   };
 
   const hasFilters =
     search ||
-    roleFilter !== "ALL" ||
-    typeFilter !== "ALL" ||
     departmentFilter !== "ALL" ||
-    clubFilter !== "ALL" ||
-    statusFilter !== "ALL";
+    semesterFilter !== "ALL" ||
+    roleFilter !== "ALL" ||
+    clubFilter !== "ALL";
 
   // =====================================================
   // HELPERS
@@ -371,15 +426,6 @@ export default function AdminUsersPage() {
       .map((part) => part[0])
       .join("")
       .toUpperCase();
-  };
-
-  const getRollNumber = (user) => {
-    return (
-      user.rollNumber ||
-      user.registerNumber ||
-      user.regNo ||
-      "-"
-    );
   };
 
   const getDepartment = (user) => {
@@ -419,6 +465,75 @@ export default function AdminUsersPage() {
   };
 
   // =====================================================
+  // EXCEL EXPORT
+  // =====================================================
+
+  const downloadExcel = () => {
+    const excelData =
+      filteredUsers.map((user, index) => ({
+        "Sl No": index + 1,
+        Name: user.name || "",
+        "Register No.": getRegisterNumber(user),
+        Phone: user.phone || "",
+        Email: user.email || "",
+        Department: user.departmentId
+          ? `${user.departmentId.code || ""}${
+              user.departmentId.name
+                ? ` - ${user.departmentId.name}`
+                : ""
+            }`
+          : "",
+        Semester:
+          getSemester(user) === "-"
+            ? ""
+            : getSemester(user),
+        Role: user.role || "",
+        Club: user.clubId
+          ? `${user.clubId.code || ""}${
+              user.clubId.name
+                ? ` - ${user.clubId.name}`
+                : ""
+            }`
+          : "",
+      }));
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        excelData
+      );
+
+    worksheet["!cols"] = [
+      { wch: 8 },
+      { wch: 28 },
+      { wch: 20 },
+      { wch: 16 },
+      { wch: 32 },
+      { wch: 30 },
+      { wch: 12 },
+      { wch: 22 },
+      { wch: 30 },
+    ];
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Users"
+    );
+
+    const date = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    XLSX.writeFile(
+      workbook,
+      `KPT_Users_${date}.xlsx`
+    );
+  };
+
+  // =====================================================
   // UI
   // =====================================================
 
@@ -435,6 +550,7 @@ export default function AdminUsersPage() {
 
           <div>
             <div className="flex items-center gap-3">
+
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-xl text-white shadow-sm">
                 👥
               </div>
@@ -448,17 +564,20 @@ export default function AdminUsersPage() {
                   Manage students, staff and administrators
                 </p>
               </div>
+
             </div>
           </div>
 
           <button
             type="button"
             onClick={() =>
-              router.push("/admin/users/new")
+              router.push(
+                "/admin/users/new"
+              )
             }
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
-            <span className="text-lg leading-none">
+            <span className="text-lg">
               +
             </span>
 
@@ -467,18 +586,13 @@ export default function AdminUsersPage() {
 
         </div>
 
-      
-
         {/* ================================================= */}
         {/* ERROR */}
         {/* ================================================= */}
 
         {error && (
           <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <div className="flex items-center gap-2">
-              <span>⚠️</span>
-              <span>{error}</span>
-            </div>
+            ⚠️ {error}
           </div>
         )}
 
@@ -506,17 +620,21 @@ export default function AdminUsersPage() {
                 type="text"
                 value={search}
                 onChange={(e) =>
-                  setSearch(e.target.value)
+                  setSearch(
+                    e.target.value
+                  )
                 }
-                placeholder="Search by name, register number, email, phone, role, department or club..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                placeholder="Search by name, register number, phone or email..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-10 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
               />
 
               {search && (
                 <button
                   type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                  onClick={() =>
+                    setSearch("")
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-200"
                 >
                   ✕
                 </button>
@@ -528,173 +646,83 @@ export default function AdminUsersPage() {
 
           {/* FILTER GRID */}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+            {/* DEPARTMENT */}
+
+            <FilterSelect
+              label="Department"
+              value={departmentFilter}
+              onChange={
+                setDepartmentFilter
+              }
+              options={departments.map(
+                (department) => ({
+                  value:
+                    department._id ||
+                    department.code,
+                  label: `${department.code}${
+                    department.name
+                      ? ` - ${department.name}`
+                      : ""
+                  }`,
+                })
+              )}
+            />
+
+            {/* SEMESTER */}
+
+            <FilterSelect
+              label="Semester"
+              value={semesterFilter}
+              onChange={
+                setSemesterFilter
+              }
+              options={[
+                1, 2, 3, 4, 5, 6,
+              ].map((semester) => ({
+                value: String(semester),
+                label: `Semester ${semester}`,
+              }))}
+            />
 
             {/* ROLE */}
 
             <FilterSelect
               label="Role"
               value={roleFilter}
-              onChange={setRoleFilter}
-              options={roles}
+              onChange={
+                setRoleFilter
+              }
+              options={roles.map(
+                (role) => ({
+                  value: role,
+                  label: role,
+                })
+              )}
             />
-
-            {/* TYPE */}
-
-            <FilterSelect
-              label="User Type"
-              value={typeFilter}
-              onChange={setTypeFilter}
-              options={userTypes}
-            />
-
-            {/* DEPARTMENT */}
-
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-500">
-                Department
-              </label>
-
-              <select
-                value={departmentFilter}
-                onChange={(e) =>
-                  setDepartmentFilter(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              >
-                <option value="ALL">
-                  All Departments
-                </option>
-
-                {departments.map((department) => (
-                  <option
-                    key={
-                      department._id ||
-                      department.code
-                    }
-                    value={
-                      department._id ||
-                      department.code
-                    }
-                  >
-                    {department.code}
-                    {department.name
-                      ? ` - ${department.name}`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             {/* CLUB */}
 
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-500">
-                Club
-              </label>
-
-              <select
-                value={clubFilter}
-                onChange={(e) =>
-                  setClubFilter(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              >
-                <option value="ALL">
-                  All Clubs
-                </option>
-
-                {clubs.map((club) => (
-                  <option
-                    key={
-                      club._id ||
-                      club.code
-                    }
-                    value={
-                      club._id ||
-                      club.code
-                    }
-                  >
-                    {club.code}
-                    {club.name
+            <FilterSelect
+              label="Club"
+              value={clubFilter}
+              onChange={
+                setClubFilter
+              }
+              options={clubs.map(
+                (club) => ({
+                  value:
+                    club._id ||
+                    club.code,
+                  label: `${club.code}${
+                    club.name
                       ? ` - ${club.name}`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* STATUS */}
-
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-500">
-                Status
-              </label>
-
-              <select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              >
-                <option value="ALL">
-                  All Status
-                </option>
-
-                <option value="ACTIVE">
-                  Active
-                </option>
-
-                <option value="INACTIVE">
-                  Inactive
-                </option>
-              </select>
-            </div>
-
-            {/* SORT */}
-
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-500">
-                Sort By
-              </label>
-
-              <select
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              >
-                <option value="name">
-                  Name
-                </option>
-
-                <option value="rollNumber">
-                  Register / Roll No.
-                </option>
-
-                <option value="email">
-                  Email
-                </option>
-
-                <option value="role">
-                  Role
-                </option>
-
-                <option value="department">
-                  Department
-                </option>
-
-                <option value="club">
-                  Club
-                </option>
-
-                <option value="status">
-                  Status
-                </option>
-              </select>
-            </div>
+                      : ""
+                  }`,
+                })
+              )}
+            />
 
           </div>
 
@@ -705,18 +733,56 @@ export default function AdminUsersPage() {
             <div className="text-sm text-slate-500">
 
               Showing{" "}
+
               <span className="font-semibold text-slate-800">
                 {filteredUsers.length}
-              </span>{" "}
-              of{" "}
+              </span>
+
+              {" "}of{" "}
+
               <span className="font-semibold text-slate-800">
                 {users.length}
-              </span>{" "}
-              users
+              </span>
+
+              {" "}users
 
             </div>
 
             <div className="flex flex-wrap gap-2">
+
+              <select
+                value={sortBy}
+                onChange={(e) =>
+                  setSortBy(
+                    e.target.value
+                  )
+                }
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 outline-none focus:border-blue-500"
+              >
+                <option value="name">
+                  Sort: Name
+                </option>
+
+                <option value="register">
+                  Sort: Register No.
+                </option>
+
+                <option value="semester">
+                  Sort: Semester
+                </option>
+
+                <option value="department">
+                  Sort: Department
+                </option>
+
+                <option value="role">
+                  Sort: Role
+                </option>
+
+                <option value="club">
+                  Sort: Club
+                </option>
+              </select>
 
               <button
                 type="button"
@@ -727,18 +793,20 @@ export default function AdminUsersPage() {
                       : "asc"
                   )
                 }
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 {sortOrder === "asc"
-                  ? "↑ Ascending"
-                  : "↓ Descending"}
+                  ? "↑ Asc"
+                  : "↓ Desc"}
               </button>
 
               {hasFilters && (
                 <button
                   type="button"
-                  onClick={clearFilters}
-                  className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
+                  onClick={
+                    clearFilters
+                  }
+                  className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
                 >
                   Clear Filters
                 </button>
@@ -758,7 +826,7 @@ export default function AdminUsersPage() {
 
           {/* TABLE HEADER */}
 
-          <div className="flex flex-col gap-1 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
 
             <div>
               <h2 className="font-semibold text-slate-900">
@@ -766,13 +834,23 @@ export default function AdminUsersPage() {
               </h2>
 
               <p className="text-xs text-slate-400">
-                Manage registered users and their access
+                {filteredUsers.length} records
               </p>
             </div>
 
-            <div className="text-xs text-slate-400">
-              {filteredUsers.length} records
-            </div>
+            <button
+              type="button"
+              onClick={
+                downloadExcel
+              }
+              disabled={
+                filteredUsers.length ===
+                0
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              📊 Export Excel
+            </button>
 
           </div>
 
@@ -798,7 +876,8 @@ export default function AdminUsersPage() {
 
           {!loading &&
             !error &&
-            filteredUsers.length === 0 && (
+            filteredUsers.length ===
+              0 && (
               <div className="flex min-h-[300px] items-center justify-center px-6">
 
                 <div className="text-center">
@@ -818,7 +897,9 @@ export default function AdminUsersPage() {
                   {hasFilters && (
                     <button
                       type="button"
-                      onClick={clearFilters}
+                      onClick={
+                        clearFilters
+                      }
                       className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
                       Clear Filters
@@ -830,17 +911,17 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-          {/* TABLE */}
+          {/* DESKTOP TABLE */}
 
           {!loading &&
             !error &&
-            filteredUsers.length > 0 && (
+            filteredUsers.length >
+              0 && (
               <div className="overflow-x-auto">
 
-                <table className="w-full min-w-[1500px] border-collapse">
+                <table className="w-full min-w-[1250px] border-collapse">
 
-                  <thead className="sticky top-0 z-10">
-
+                  <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
 
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -856,11 +937,7 @@ export default function AdminUsersPage() {
                       </th>
 
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Register / Roll No.
-                      </th>
-
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Email
+                        Register No.
                       </th>
 
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -868,11 +945,7 @@ export default function AdminUsersPage() {
                       </th>
 
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Type
-                      </th>
-
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Role
+                        Email
                       </th>
 
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -880,11 +953,15 @@ export default function AdminUsersPage() {
                       </th>
 
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Club
+                        Semester
                       </th>
 
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Status
+                        Role
+                      </th>
+
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Club
                       </th>
 
                       <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -892,7 +969,6 @@ export default function AdminUsersPage() {
                       </th>
 
                     </tr>
-
                   </thead>
 
                   <tbody>
@@ -901,10 +977,10 @@ export default function AdminUsersPage() {
                       (user, index) => (
                         <tr
                           key={user._id}
-                          className="group border-b border-slate-100 transition hover:bg-blue-50/40"
+                          className="border-b border-slate-100 transition hover:bg-blue-50/40"
                         >
 
-                          {/* NUMBER */}
+                          {/* SL NO */}
 
                           <td className="px-4 py-4 text-sm text-slate-400">
                             {index + 1}
@@ -923,10 +999,10 @@ export default function AdminUsersPage() {
                                   user.name ||
                                   "User"
                                 }
-                                className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+                                className="h-11 w-11 rounded-full object-cover shadow-sm ring-2 ring-white"
                               />
                             ) : (
-                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 ring-2 ring-white shadow-sm">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
                                 {getInitials(
                                   user.name
                                 )}
@@ -944,48 +1020,58 @@ export default function AdminUsersPage() {
                                 "-"}
                             </div>
 
-                            {user.email && (
-                              <div className="mt-0.5 text-xs text-slate-400">
-                                {user.email}
-                              </div>
-                            )}
-
                           </td>
 
-                          {/* ROLL NUMBER */}
+                          {/* REGISTER */}
 
                           <td className="px-4 py-4">
 
                             <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700">
-                              {getRollNumber(
+                              {getRegisterNumber(
                                 user
                               )}
                             </span>
 
                           </td>
 
-                          {/* EMAIL */}
-
-                          <td className="px-4 py-4 text-sm text-slate-600">
-                            {user.email || "-"}
-                          </td>
-
                           {/* PHONE */}
 
                           <td className="px-4 py-4 text-sm text-slate-600">
-                            {user.phone || "-"}
+                            {user.phone ||
+                              "-"}
                           </td>
 
-                          {/* TYPE */}
+                          {/* EMAIL */}
+
+                          <td className="px-4 py-4 text-sm text-slate-600">
+                            {user.email ||
+                              "-"}
+                          </td>
+
+                          {/* DEPARTMENT */}
+
+                          <td className="px-4 py-4 text-sm">
+                            {getDepartment(
+                              user
+                            )}
+                          </td>
+
+                          {/* SEMESTER */}
 
                           <td className="px-4 py-4">
 
-                            {user.userType ? (
-                              <span className="inline-flex rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-                                {user.userType}
+                            {getSemester(user) !==
+                            "-" ? (
+                              <span className="inline-flex rounded-lg bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                                Sem{" "}
+                                {getSemester(
+                                  user
+                                )}
                               </span>
                             ) : (
-                              "-"
+                              <span className="text-slate-400">
+                                -
+                              </span>
                             )}
 
                           </td>
@@ -1004,45 +1090,13 @@ export default function AdminUsersPage() {
 
                           </td>
 
-                          {/* DEPARTMENT */}
-
-                          <td className="px-4 py-4 text-sm">
-                            {getDepartment(
-                              user
-                            )}
-                          </td>
-
                           {/* CLUB */}
 
                           <td className="px-4 py-4 text-sm">
                             {getClub(user)}
                           </td>
 
-                          {/* STATUS */}
-
-                          <td className="px-4 py-4">
-
-                            {user.isActive ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-
-                                Active
-
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-
-                                Inactive
-
-                              </span>
-                            )}
-
-                          </td>
-
-                          {/* ACTIONS */}
+                          {/* ACTION */}
 
                           <td className="px-4 py-4 text-right">
 
@@ -1054,7 +1108,7 @@ export default function AdminUsersPage() {
                                   user.name
                                 )
                               }
-                              className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                              className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50"
                             >
                               Delete
                             </button>
@@ -1081,7 +1135,7 @@ export default function AdminUsersPage() {
 }
 
 // =====================================================
-// FILTER SELECT COMPONENT
+// FILTER SELECT
 // =====================================================
 
 function FilterSelect({
@@ -1092,6 +1146,7 @@ function FilterSelect({
 }) {
   return (
     <div>
+
       <label className="mb-1.5 block text-xs font-semibold text-slate-500">
         {label}
       </label>
@@ -1099,23 +1154,28 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) =>
-          onChange(e.target.value)
+          onChange(
+            e.target.value
+          )
         }
         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
       >
+
         <option value="ALL">
           All {label}s
         </option>
 
         {options.map((option) => (
           <option
-            key={option}
-            value={option}
+            key={option.value}
+            value={option.value}
           >
-            {option}
+            {option.label}
           </option>
         ))}
+
       </select>
+
     </div>
   );
 }

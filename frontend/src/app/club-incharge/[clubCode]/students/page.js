@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
+import * as XLSX from "xlsx";
 
 export default function ClubStudentsPage() {
   const { clubCode } = useParams();
@@ -22,9 +23,15 @@ export default function ClubStudentsPage() {
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [semesterFilter, setSemesterFilter] = useState("ALL");
 
-  // DELETE STATES
+  // ==================================================
+  // DELETE / SELECTION STATES
+  // ==================================================
+
   const [studentToDelete, setStudentToDelete] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+
   const [deletingId, setDeletingId] = useState(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // ==================================================
   // LOAD STUDENTS
@@ -54,6 +61,7 @@ export default function ClubStudentsPage() {
 
       setStudents(response.data.students || []);
       setClub(response.data.club || null);
+      setSelectedStudents([]);
     } catch (error) {
       console.error(
         "Club students error:",
@@ -66,65 +74,6 @@ export default function ClubStudentsPage() {
       );
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ==================================================
-  // DELETE STUDENT
-  // ==================================================
-
-  const handleDeleteStudent = async () => {
-    if (!studentToDelete) return;
-
-    try {
-      setDeletingId(studentToDelete.id);
-      setError("");
-      setSuccess("");
-
-      const token = await getToken();
-
-      const response = await api.delete(
-        `/api/club-incharge/${clubCode}/students/${studentToDelete.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data?.success) {
-        setStudents((current) =>
-          current.filter(
-            (student) =>
-              student.id !== studentToDelete.id
-          )
-        );
-
-        setSuccess(
-          response.data.message ||
-            "Student deleted successfully"
-        );
-
-        setStudentToDelete(null);
-
-        setTimeout(() => {
-          setSuccess("");
-        }, 4000);
-      }
-    } catch (error) {
-      console.error(
-        "Delete student error:",
-        error.response?.data || error.message
-      );
-
-      setError(
-        error.response?.data?.message ||
-          "Failed to delete student"
-      );
-
-      setStudentToDelete(null);
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -260,11 +209,332 @@ export default function ClubStudentsPage() {
     semesterFilter,
   ]);
 
+  // ==================================================
+  // EXCEL DOWNLOAD
+  // ==================================================
+
+  const downloadExcel = () => {
+    if (filteredStudents.length === 0) {
+      setError("No students available to export.");
+      return;
+    }
+
+    try {
+      setError("");
+      setSuccess("");
+
+      const excelData = filteredStudents.map(
+        (student, index) => ({
+          "Sl No": index + 1,
+          "Student Name": student.name?.toUpperCase() || "",
+          "Register Number":
+            student.registerNumber || "",
+          Email: student.email || "",
+          Department:
+            student.department?.name || "",
+          "Department Code":
+            student.department?.code || "",
+          Semester: student.semester || "",
+        })
+      );
+
+      const worksheet =
+        XLSX.utils.json_to_sheet(excelData);
+
+      // Column widths
+      worksheet["!cols"] = [
+        { wch: 8 },
+        { wch: 28 },
+        { wch: 20 },
+        { wch: 32 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 12 },
+      ];
+
+      const workbook =
+        XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Students"
+      );
+
+      const clubName =
+        club?.name ||
+        clubCode?.toUpperCase() ||
+        "Club";
+
+      const safeClubName = clubName
+        .replace(/[^a-zA-Z0-9-_ ]/g, "")
+        .trim()
+        .replace(/\s+/g, "_");
+
+      const date = new Date()
+        .toISOString()
+        .split("T")[0];
+
+      XLSX.writeFile(
+        workbook,
+        `${safeClubName}_Students_${date}.xlsx`
+      );
+
+      setSuccess(
+        `${filteredStudents.length} student${
+          filteredStudents.length > 1 ? "s" : ""
+        } exported to Excel successfully.`
+      );
+
+      setTimeout(() => {
+        setSuccess("");
+      }, 4000);
+    } catch (error) {
+      console.error(
+        "Excel download error:",
+        error
+      );
+
+      setError(
+        "Failed to download Excel file."
+      );
+    }
+  };
+
+  // ==================================================
+  // SELECTION HELPERS
+  // ==================================================
+
+  const filteredStudentIds = filteredStudents.map(
+    (student) => student.id
+  );
+
+  const allFilteredSelected =
+    filteredStudents.length > 0 &&
+    filteredStudents.every((student) =>
+      selectedStudents.includes(student.id)
+    );
+
+  const someSelected =
+    selectedStudents.length > 0;
+
+  // ==================================================
+  // TOGGLE SINGLE STUDENT
+  // ==================================================
+
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents((current) => {
+      if (current.includes(studentId)) {
+        return current.filter(
+          (id) => id !== studentId
+        );
+      }
+
+      return [...current, studentId];
+    });
+  };
+
+  // ==================================================
+  // SELECT / DESELECT ALL FILTERED
+  // ==================================================
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedStudents((current) =>
+        current.filter(
+          (id) =>
+            !filteredStudentIds.includes(id)
+        )
+      );
+    } else {
+      setSelectedStudents((current) => [
+        ...new Set([
+          ...current,
+          ...filteredStudentIds,
+        ]),
+      ]);
+    }
+  };
+
+  // ==================================================
+  // SINGLE DELETE
+  // ==================================================
+
+  const handleDeleteStudent = async () => {
+    if (!studentToDelete) return;
+
+    try {
+      setDeletingId(studentToDelete.id);
+      setError("");
+      setSuccess("");
+
+      const token = await getToken();
+
+      const response = await api.delete(
+        `/api/club-incharge/${clubCode}/students/${studentToDelete.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data?.success) {
+        setStudents((current) =>
+          current.filter(
+            (student) =>
+              student.id !==
+              studentToDelete.id
+          )
+        );
+
+        setSelectedStudents((current) =>
+          current.filter(
+            (id) =>
+              id !== studentToDelete.id
+          )
+        );
+
+        setSuccess(
+          response.data.message ||
+            "Student deleted successfully"
+        );
+
+        setStudentToDelete(null);
+
+        setTimeout(() => {
+          setSuccess("");
+        }, 4000);
+      }
+    } catch (error) {
+      console.error(
+        "Delete student error:",
+        error.response?.data || error.message
+      );
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to delete student"
+      );
+
+      setStudentToDelete(null);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // ==================================================
+  // MULTIPLE DELETE
+  // ==================================================
+
+  const handleBulkDelete = async () => {
+    if (selectedStudents.length === 0) {
+      return;
+    }
+
+    const selectedCount =
+      selectedStudents.length;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedCount} selected student${
+        selectedCount > 1 ? "s" : ""
+      }?\n\nThis action will permanently remove the selected student data.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setBulkDeleting(true);
+      setError("");
+      setSuccess("");
+
+      const token = await getToken();
+
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const studentId of selectedStudents) {
+        try {
+          const response = await api.delete(
+            `/api/club-incharge/${clubCode}/students/${studentId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (response.data?.success) {
+            successCount++;
+          } else {
+            failedCount++;
+          }
+        } catch (error) {
+          console.error(
+            `Failed to delete student ${studentId}:`,
+            error.response?.data ||
+              error.message
+          );
+
+          failedCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        setStudents((current) =>
+          current.filter(
+            (student) =>
+              !selectedStudents.includes(
+                student.id
+              )
+          )
+        );
+      }
+
+      setSelectedStudents([]);
+
+      if (failedCount === 0) {
+        setSuccess(
+          `${successCount} student${
+            successCount > 1 ? "s" : ""
+          } deleted successfully.`
+        );
+      } else {
+        setSuccess(
+          `${successCount} student${
+            successCount > 1 ? "s" : ""
+          } deleted successfully. ${failedCount} failed.`
+        );
+      }
+
+      setTimeout(() => {
+        setSuccess("");
+      }, 5000);
+    } catch (error) {
+      console.error(
+        "Bulk delete error:",
+        error
+      );
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to delete selected students"
+      );
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // ==================================================
+  // CLEAR FILTERS
+  // ==================================================
+
   const clearFilters = () => {
     setSearch("");
     setDepartmentFilter("ALL");
     setSemesterFilter("ALL");
     setSortBy("name");
+    setSelectedStudents([]);
   };
 
   // ==================================================
@@ -274,7 +544,6 @@ export default function ClubStudentsPage() {
   if (!isLoaded || loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4">
-
         <div className="flex items-center gap-3 text-sm text-gray-500">
 
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
@@ -282,7 +551,6 @@ export default function ClubStudentsPage() {
           Loading students...
 
         </div>
-
       </div>
     );
   }
@@ -346,7 +614,7 @@ export default function ClubStudentsPage() {
 
         <div className="mb-5 sm:mb-7">
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 
             <div className="min-w-0">
 
@@ -372,24 +640,85 @@ export default function ClubStudentsPage() {
 
             </div>
 
-            {/* TOTAL STUDENTS */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 
-            <div className="w-full rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 sm:w-auto">
+              {/* SELECTED COUNT / DELETE */}
 
-              <p className="text-xs font-medium text-gray-400">
-                Total Students
-              </p>
+              {someSelected && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 sm:min-w-[220px]">
 
-              <p className="mt-0.5 text-xl font-bold text-gray-900">
-                {students.length}
-              </p>
+                  <div>
+
+                    <p className="text-xs font-medium text-red-500">
+                      Selected
+                    </p>
+
+                    <p className="text-lg font-bold text-red-700">
+                      {selectedStudents.length}
+                    </p>
+
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleBulkDelete}
+                    disabled={bulkDeleting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+
+                    {bulkDeleting ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <TrashIcon />
+                        Delete Selected
+                      </>
+                    )}
+
+                  </button>
+
+                </div>
+              )}
+
+              {/* EXCEL DOWNLOAD */}
+
+              <button
+                type="button"
+                onClick={downloadExcel}
+                disabled={filteredStudents.length === 0}
+                className="inline-flex h-[54px] items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+
+                <ExcelIcon />
+
+                <span>
+                  Download Excel
+                </span>
+
+              </button>
+
+              {/* TOTAL */}
+
+              <div className="w-full rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 sm:w-auto">
+
+                <p className="text-xs font-medium text-gray-400">
+                  Total Students
+                </p>
+
+                <p className="mt-0.5 text-xl font-bold text-gray-900">
+                  {students.length}
+                </p>
+
+              </div>
 
             </div>
 
           </div>
 
         </div>
-
 
         {/* ==============================================
             SUCCESS MESSAGE
@@ -422,7 +751,6 @@ export default function ClubStudentsPage() {
 
           </div>
         )}
-
 
         {/* ==============================================
             ERROR MESSAGE
@@ -466,7 +794,6 @@ export default function ClubStudentsPage() {
 
           </div>
         )}
-
 
         {/* ==============================================
             SEARCH + FILTER + SORT
@@ -519,7 +846,6 @@ export default function ClubStudentsPage() {
 
             </div>
 
-
             {/* DEPARTMENT */}
 
             <div>
@@ -557,7 +883,6 @@ export default function ClubStudentsPage() {
 
             </div>
 
-
             {/* SEMESTER */}
 
             <div>
@@ -594,7 +919,6 @@ export default function ClubStudentsPage() {
               </select>
 
             </div>
-
 
             {/* SORT */}
 
@@ -634,7 +958,6 @@ export default function ClubStudentsPage() {
 
           </div>
 
-
           {/* FILTER FOOTER */}
 
           <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
@@ -651,26 +974,76 @@ export default function ClubStudentsPage() {
               students
             </p>
 
+            <div className="flex flex-col gap-2 sm:flex-row">
 
-            {(search ||
-              departmentFilter !== "ALL" ||
-              semesterFilter !== "ALL" ||
-              sortBy !== "name") && (
+              {/* SELECT ALL */}
+
+              {filteredStudents.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  disabled={bulkDeleting}
+                  className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+                >
+                  {allFilteredSelected
+                    ? "Deselect All"
+                    : "Select All"}
+                </button>
+              )}
+
+              {/* DELETE SELECTED */}
+
+              {someSelected && (
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                >
+
+                  <TrashIcon />
+
+                  {bulkDeleting
+                    ? "Deleting..."
+                    : `Delete Selected (${selectedStudents.length})`}
+
+                </button>
+              )}
+
+              {/* EXCEL */}
 
               <button
                 type="button"
-                onClick={clearFilters}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 sm:w-auto"
+                onClick={downloadExcel}
+                disabled={
+                  filteredStudents.length === 0
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Clear Filters
+                <ExcelIcon />
+                Download Excel
               </button>
 
-            )}
+              {/* CLEAR FILTERS */}
+
+              {(search ||
+                departmentFilter !== "ALL" ||
+                semesterFilter !== "ALL" ||
+                sortBy !== "name") && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+                >
+                  Clear Filters
+                </button>
+              )}
+
+            </div>
 
           </div>
 
         </div>
-
 
         {/* ==============================================
             STUDENT TABLE / MOBILE LIST
@@ -682,15 +1055,32 @@ export default function ClubStudentsPage() {
               DESKTOP TABLE
           ================================================= */}
 
-          <div className="hidden md:block">
+          <div className="hidden overflow-x-auto md:block">
 
-            <table className="w-full">
+            <table className="w-full min-w-[1000px]">
 
               <thead>
 
                 <tr className="border-b border-gray-100 bg-gray-50/80 text-left">
 
-                  <th className="w-16 px-6 py-4 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {/* SELECT ALL */}
+
+                  <th className="w-14 px-3 py-4 text-center">
+
+                    <input
+                      type="checkbox"
+                      checked={allFilteredSelected}
+                      onChange={toggleSelectAll}
+                      disabled={
+                        filteredStudents.length === 0 ||
+                        bulkDeleting
+                      }
+                      className="h-4 w-4 cursor-pointer rounded border-gray-300 text-red-600 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    />
+
+                  </th>
+
+                  <th className="w-16 px-4 py-4 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
                     #
                   </th>
 
@@ -718,7 +1108,6 @@ export default function ClubStudentsPage() {
 
               </thead>
 
-
               <tbody className="divide-y divide-gray-100">
 
                 {filteredStudents.length === 0 ? (
@@ -726,7 +1115,7 @@ export default function ClubStudentsPage() {
                   <tr>
 
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-6 py-14 text-center"
                     >
 
@@ -768,121 +1157,149 @@ export default function ClubStudentsPage() {
                 ) : (
 
                   filteredStudents.map(
-                    (student, index) => (
+                    (student, index) => {
 
-                      <tr
-                        key={student.id}
-                        className="transition hover:bg-gray-50/70"
-                      >
+                      const isSelected =
+                        selectedStudents.includes(
+                          student.id
+                        );
 
-                        {/* S.NO */}
+                      return (
+                        <tr
+                          key={student.id}
+                          className={`transition ${
+                            isSelected
+                              ? "bg-red-50/60"
+                              : "hover:bg-gray-50/70"
+                          }`}
+                        >
 
-                        <td className="px-6 py-4 text-center">
+                          {/* CHECKBOX */}
 
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
-                            {index + 1}
-                          </span>
+                          <td className="px-3 py-4 text-center">
 
-                        </td>
-
-
-                        {/* STUDENT */}
-
-                        <td className="px-6 py-4">
-
-                          <div className="flex items-center gap-3">
-
-                            <StudentPhoto
-                              student={student}
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() =>
+                                toggleStudentSelection(
+                                  student.id
+                                )
+                              }
+                              disabled={
+                                deletingId ===
+                                  student.id ||
+                                bulkDeleting
+                              }
+                              className="h-4 w-4 cursor-pointer rounded border-gray-300 text-red-600 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-40"
                             />
 
-                            <div className="min-w-0">
+                          </td>
 
-                              <p className="break-words font-semibold text-gray-900">
-                                {student.name}
-                              </p>
+                          {/* S.NO */}
 
-                              <p className="mt-0.5 max-w-xs truncate text-xs text-gray-500">
-                                {student.email}
-                              </p>
+                          <td className="px-4 py-4 text-center">
+
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                              {index + 1}
+                            </span>
+
+                          </td>
+
+                          {/* STUDENT */}
+
+                          <td className="px-6 py-4">
+
+                            <div className="flex items-center gap-3">
+
+                              <StudentPhoto
+                                student={student}
+                              />
+
+                              <div className="min-w-0">
+
+                                <p className="break-words font-semibold text-gray-900">
+                                  {student.name?.toUpperCase()}
+                                </p>
+
+                                <p className="mt-0.5 max-w-xs truncate text-xs text-gray-500">
+                                  {student.email}
+                                </p>
+
+                              </div>
 
                             </div>
 
-                          </div>
+                          </td>
 
-                        </td>
+                          {/* REGISTER NUMBER */}
 
+                          <td className="px-6 py-4">
 
-                        {/* REGISTER NUMBER */}
+                            <span className="rounded-md bg-gray-50 px-2.5 py-1 text-sm font-medium text-gray-700">
+                              {student.registerNumber}
+                            </span>
 
-                        <td className="px-6 py-4">
+                          </td>
 
-                          <span className="rounded-md bg-gray-50 px-2.5 py-1 text-sm font-medium text-gray-700">
-                            {student.registerNumber}
-                          </span>
+                          {/* DEPARTMENT */}
 
-                        </td>
+                          <td className="px-6 py-4">
 
+                            <div className="min-w-0">
 
-                        {/* DEPARTMENT */}
-
-                        <td className="px-6 py-4">
-
-                          <div className="min-w-0">
-
-                            <p className="break-words text-sm font-medium text-gray-800">
-                              {student.department?.name ||
-                                "—"}
-                            </p>
-
-                            {student.department?.code && (
-                              <p className="mt-0.5 text-xs text-gray-500">
-                                {student.department.code}
+                              <p className="break-words text-sm font-medium text-gray-800">
+                                {student.department?.name ||
+                                  "—"}
                               </p>
-                            )}
 
-                          </div>
+                              {student.department?.code && (
+                                <p className="mt-0.5 text-xs text-gray-500">
+                                  {student.department.code}
+                                </p>
+                              )}
 
-                        </td>
+                            </div>
 
+                          </td>
 
-                        {/* SEMESTER */}
+                          {/* SEMESTER */}
 
-                        <td className="px-6 py-4">
+                          <td className="px-6 py-4">
 
-                          <span className="inline-flex rounded-md bg-blue-50 px-2.5 py-1.5 text-sm font-semibold text-blue-700">
-                            Sem {student.semester || "—"}
-                          </span>
+                            <span className="inline-flex rounded-md bg-blue-50 px-2.5 py-1.5 text-sm font-semibold text-blue-700">
+                              Sem {student.semester || "—"}
+                            </span>
 
-                        </td>
+                          </td>
 
+                          {/* DELETE */}
 
-                        {/* DELETE */}
+                          <td className="px-6 py-4 text-right">
 
-                        <td className="px-6 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setStudentToDelete(
+                                  student
+                                )
+                              }
+                              disabled={
+                                deletingId ===
+                                  student.id ||
+                                bulkDeleting
+                              }
+                              className="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <TrashIcon />
+                              Delete
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setStudentToDelete(
-                                student
-                              )
-                            }
-                            disabled={
-                              deletingId ===
-                              student.id
-                            }
-                            className="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <TrashIcon />
-                            Delete
-                          </button>
+                          </td>
 
-                        </td>
-
-                      </tr>
-
-                    )
+                        </tr>
+                      );
+                    }
                   )
 
                 )}
@@ -893,12 +1310,43 @@ export default function ClubStudentsPage() {
 
           </div>
 
-
           {/* =================================================
               MOBILE
           ================================================= */}
 
           <div className="divide-y divide-gray-100 md:hidden">
+
+            {/* MOBILE SELECT ALL */}
+
+            {filteredStudents.length > 0 && (
+              <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
+
+                <label className="flex cursor-pointer items-center gap-2">
+
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAll}
+                    disabled={bulkDeleting}
+                    className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+
+                  <span className="text-sm font-semibold text-gray-700">
+                    {allFilteredSelected
+                      ? "Deselect All"
+                      : "Select All"}
+                  </span>
+
+                </label>
+
+                {someSelected && (
+                  <span className="text-xs font-bold text-red-600">
+                    {selectedStudents.length} selected
+                  </span>
+                )}
+
+              </div>
+            )}
 
             {filteredStudents.length === 0 ? (
 
@@ -940,20 +1388,38 @@ export default function ClubStudentsPage() {
             ) : (
 
               filteredStudents.map(
-                (student, index) => (
+                (student, index) => {
 
-                  <div
-                    key={student.id}
-                    className="p-4 sm:p-5"
-                  >
+                  const isSelected =
+                    selectedStudents.includes(
+                      student.id
+                    );
 
-                    {/* STUDENT HEADER */}
+                  return (
+                    <div
+                      key={student.id}
+                      className={`p-4 sm:p-5 ${
+                        isSelected
+                          ? "bg-red-50/60"
+                          : ""
+                      }`}
+                    >
 
-                    <div className="flex items-start justify-between gap-2 sm:gap-3">
+                      {/* STUDENT HEADER */}
 
-                      <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex items-start gap-3">
 
-                        {/* S.NO */}
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() =>
+                            toggleStudentSelection(
+                              student.id
+                            )
+                          }
+                          disabled={bulkDeleting}
+                          className="mt-2 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        />
 
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">
                           #{index + 1}
@@ -963,10 +1429,10 @@ export default function ClubStudentsPage() {
                           student={student}
                         />
 
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
 
                           <p className="break-words font-semibold text-gray-900">
-                            {student.name}
+                            {student.name?.toUpperCase()}
                           </p>
 
                           <p className="mt-0.5 break-all text-xs text-gray-500">
@@ -979,10 +1445,61 @@ export default function ClubStudentsPage() {
 
                         </div>
 
+                        {/* DELETE ICON */}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setStudentToDelete(
+                              student
+                            )
+                          }
+                          disabled={
+                            deletingId ===
+                              student.id ||
+                            bulkDeleting
+                          }
+                          aria-label={`Delete ${student.name}`}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <TrashIcon />
+                        </button>
+
                       </div>
 
+                      {/* DETAILS */}
 
-                      {/* DELETE ICON */}
+                      <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:gap-4">
+
+                        <div className="min-w-0">
+
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                            Department
+                          </p>
+
+                          <p className="mt-1 break-words text-sm font-medium text-gray-700">
+                            {student.department?.code ||
+                              student.department?.name ||
+                              "—"}
+                          </p>
+
+                        </div>
+
+                        <div className="min-w-0">
+
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                            Semester
+                          </p>
+
+                          <p className="mt-1 text-sm font-medium text-gray-700">
+                            {student.semester || "—"}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                      {/* DELETE BUTTON */}
 
                       <button
                         type="button"
@@ -992,72 +1509,19 @@ export default function ClubStudentsPage() {
                           )
                         }
                         disabled={
-                          deletingId === student.id
+                          deletingId ===
+                            student.id ||
+                          bulkDeleting
                         }
-                        aria-label={`Delete ${student.name}`}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-red-100 bg-red-50 py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
                       >
                         <TrashIcon />
+                        Delete Student
                       </button>
 
                     </div>
-
-
-                    {/* DETAILS */}
-
-                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:gap-4">
-
-                      <div className="min-w-0">
-
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                          Department
-                        </p>
-
-                        <p className="mt-1 break-words text-sm font-medium text-gray-700">
-                          {student.department?.code ||
-                            student.department?.name ||
-                            "—"}
-                        </p>
-
-                      </div>
-
-
-                      <div className="min-w-0">
-
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                          Semester
-                        </p>
-
-                        <p className="mt-1 text-sm font-medium text-gray-700">
-                          {student.semester || "—"}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-
-                    {/* DELETE BUTTON */}
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setStudentToDelete(
-                          student
-                        )
-                      }
-                      disabled={
-                        deletingId === student.id
-                      }
-                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-red-100 bg-red-50 py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <TrashIcon />
-                      Delete Student
-                    </button>
-
-                  </div>
-
-                )
+                  );
+                }
               )
 
             )}
@@ -1068,9 +1532,55 @@ export default function ClubStudentsPage() {
 
       </div>
 
+      {/* ==================================================
+          MOBILE BULK DELETE BAR
+      ================================================== */}
+
+      {selectedStudents.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 p-3 shadow-2xl backdrop-blur md:hidden">
+
+          <div className="mx-auto flex max-w-7xl items-center gap-3">
+
+            <div className="min-w-0 flex-1">
+
+              <p className="text-sm font-bold text-gray-900">
+                {selectedStudents.length} selected
+              </p>
+
+              <p className="truncate text-xs text-gray-500">
+                Ready to delete
+              </p>
+
+            </div>
+
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-red-700 disabled:opacity-50"
+            >
+
+              {bulkDeleting ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Deleting
+                </>
+              ) : (
+                <>
+                  <TrashIcon />
+                  Delete
+                </>
+              )}
+
+            </button>
+
+          </div>
+
+        </div>
+      )}
 
       {/* ==================================================
-          DELETE CONFIRMATION MODAL
+          SINGLE DELETE CONFIRMATION MODAL
       ================================================== */}
 
       {studentToDelete && (
@@ -1118,7 +1628,6 @@ export default function ClubStudentsPage() {
 
             </div>
 
-
             {/* STUDENT */}
 
             <div className="px-4 py-4 sm:px-6 sm:py-5">
@@ -1143,7 +1652,6 @@ export default function ClubStudentsPage() {
 
               </div>
 
-
               <div className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 sm:p-4">
 
                 <p className="text-xs font-semibold text-red-700">
@@ -1160,7 +1668,6 @@ export default function ClubStudentsPage() {
               </div>
 
             </div>
-
 
             {/* BUTTONS */}
 
@@ -1210,7 +1717,6 @@ export default function ClubStudentsPage() {
   );
 }
 
-
 // =====================================================
 // TRASH ICON
 // =====================================================
@@ -1239,6 +1745,28 @@ function TrashIcon({ large = false }) {
   );
 }
 
+// =====================================================
+// EXCEL ICON
+// =====================================================
+
+function ExcelIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="m8 13 2 3-2 3" />
+      <path d="m12 13 2 3-2 3" />
+    </svg>
+  );
+}
 
 // =====================================================
 // STUDENT PHOTO
