@@ -402,7 +402,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
 <header className="sticky top-0 z-50 border-b bg-white shadow-sm">
 
-  <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+  <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
 
     <div className="flex items-center justify-between gap-4">
 
@@ -455,13 +455,13 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       <section className="bg-gradient-to-r from-red-600 via-orange-500 to-amber-500">
 
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-7">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
 
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
             <div className="flex items-start gap-4">
 
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-lg">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-lg">
                 📝
               </div>
 
@@ -502,7 +502,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
           DASHBOARD CONTENT
       ================================================= */}
 
-      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
 
 
         {/* =================================================
@@ -511,7 +511,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
 
-          <div className="border-b px-5 py-5 sm:px-6">
+          <div className="border-b px-5 py-3 sm:px-6">
 
             <h3 className="text-lg font-bold text-slate-800">
               Department-wise Student Registration Details
@@ -527,7 +527,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           {loading ? (
 
-            <div className="px-5 py-16 text-center">
+            <div className="px-5 py-10 text-center">
 
               <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
 
@@ -539,7 +539,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           ) : error ? (
 
-            <div className="px-5 py-12 text-center">
+            <div className="px-5 py-9 text-center">
 
               <p className="font-semibold text-red-600">
                 {error}
@@ -553,7 +553,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           ) : summary.length === 0 ? (
 
-            <div className="px-5 py-14 text-center">
+            <div className="px-5 py-9 text-center">
 
               <div className="text-4xl">
                 📋
@@ -575,27 +575,27 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
     <tr className="border-b">
 
-      <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+      <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
         #
       </th>
 
-      <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+      <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
         Department
       </th>
 
-      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
         Year 1
       </th>
 
-      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
         Year 2
       </th>
 
-      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
         Year 3
       </th>
 
-      <th className="px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-indigo-600">
+      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-indigo-600">
         Total
       </th>
 
@@ -653,32 +653,32 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           {/* SL NO */}
 
-          <td className="px-5 py-4 text-sm text-slate-500">
+          <td className="px-4 py-2.5 text-sm text-slate-500">
             {index + 1}
           </td>
 
 
           {/* DEPARTMENT */}
 
-          <td className="px-5 py-4">
+          <td className="px-4 py-2.5">
 
-            <p className="font-bold text-slate-800">
-              {code}
+            <p className="font-bold text-slate-500">
+               {department.departmentName} <span className="max-w-[220px] text-xs text-slate-800"> ({code})</span>
             </p>
 
-            <p className="max-w-[220px] text-xs text-slate-500">
-              {department.departmentName}
-            </p>
+            {/* <p >
+             
+            </p> */}
 
           </td>
 
 
           {/* YEAR 1 = SEM 1 */}
 
-          <td className="px-5 py-4 text-center">
+          <td className="px-4 py-2.5 text-center">
 
             <span
-              className={`inline-flex min-w-[80px] justify-center rounded-lg px-3 py-2 text-sm font-bold ${
+              className={`inline-flex min-w-[72px] justify-center rounded-md px-2.5 py-1.5 text-sm font-bold ${
                 year1Registered > 0
                   ? "bg-indigo-50 text-indigo-700"
                   : "bg-slate-50 text-slate-500"
@@ -692,10 +692,10 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           {/* YEAR 2 = SEM 3 */}
 
-          <td className="px-5 py-4 text-center">
+          <td className="px-4 py-2.5 text-center">
 
             <span
-              className={`inline-flex min-w-[80px] justify-center rounded-lg px-3 py-2 text-sm font-bold ${
+              className={`inline-flex min-w-[72px] justify-center rounded-md px-2.5 py-1.5 text-sm font-bold ${
                 year2Registered > 0
                   ? "bg-indigo-50 text-indigo-700"
                   : "bg-slate-50 text-slate-500"
@@ -709,10 +709,10 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           {/* YEAR 3 = SEM 5 */}
 
-          <td className="px-5 py-4 text-center">
+          <td className="px-4 py-2.5 text-center">
 
             <span
-              className={`inline-flex min-w-[80px] justify-center rounded-lg px-3 py-2 text-sm font-bold ${
+              className={`inline-flex min-w-[72px] justify-center rounded-md px-2.5 py-1.5 text-sm font-bold ${
                 year3Registered > 0
                   ? "bg-indigo-50 text-indigo-700"
                   : "bg-slate-50 text-slate-500"
@@ -726,9 +726,9 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           {/* TOTAL */}
 
-          <td className="px-5 py-4 text-center">
+          <td className="px-4 py-2.5 text-center">
 
-            <span className="inline-flex min-w-[90px] justify-center rounded-lg bg-green-50 px-4 py-2 font-extrabold text-green-700">
+            <span className="inline-flex min-w-[82px] justify-center rounded-md bg-green-50 px-3 py-1.5 font-extrabold text-green-700">
 
               {Number(department.total || 0)}
               {" / "}
@@ -753,7 +753,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       <td
         colSpan="2"
-        className="px-5 py-4 font-extrabold text-indigo-800"
+        className="px-4 py-2.5 font-extrabold text-indigo-800"
       >
         GRAND TOTAL
       </td>
@@ -761,7 +761,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       {/* YEAR 1 TOTAL */}
 
-      <td className="px-5 py-4 text-center font-extrabold text-indigo-700">
+      <td className="px-4 py-2.5 text-center font-extrabold text-indigo-700">
 
         {Number(semesterTotals?.[1] || 0)}
         {" / "}
@@ -781,7 +781,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       {/* YEAR 2 TOTAL */}
 
-      <td className="px-5 py-4 text-center font-extrabold text-indigo-700">
+      <td className="px-4 py-2.5 text-center font-extrabold text-indigo-700">
 
         {Number(semesterTotals?.[3] || 0)}
         {" / "}
@@ -801,7 +801,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       {/* YEAR 3 TOTAL */}
 
-      <td className="px-5 py-4 text-center font-extrabold text-indigo-700">
+      <td className="px-4 py-2.5 text-center font-extrabold text-indigo-700">
 
         {Number(semesterTotals?.[5] || 0)}
         {" / "}
@@ -821,9 +821,9 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       {/* GRAND TOTAL */}
 
-      <td className="px-5 py-4 text-center">
+      <td className="px-4 py-2.5 text-center">
 
-        <span className="inline-flex min-w-[100px] justify-center rounded-lg bg-green-100 px-4 py-2 text-lg font-extrabold text-green-700">
+        <span className="inline-flex min-w-[90px] justify-center rounded-md bg-green-100 px-3 py-1.5 text-base font-extrabold text-green-700">
 
           {Number(grandTotal || 0)}
           {" / "}
@@ -862,11 +862,11 @@ const getDepartmentTotalStrength = (departmentCode) => {
     CLUB-WISE REGISTRATION TABLE
 ================================================= */}
 
-<div className="mt-7 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+<div className="mt-5 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
 
   {/* HEADER + SEARCH */}
 
-  <div className="border-b px-5 py-5 sm:px-6">
+  <div className="border-b px-5 py-3 sm:px-6">
 
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
@@ -990,7 +990,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
   {loading ? (
 
-    <div className="px-5 py-16 text-center">
+    <div className="px-5 py-10 text-center">
 
       <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
 
@@ -1010,11 +1010,11 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
           <tr className="border-b bg-slate-50">
 
-            <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               #
             </th>
 
-            <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
               Club
             </th>
 
@@ -1030,7 +1030,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
                 <th
                   key={department._id}
-                  className="border-l border-slate-200 px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-indigo-600"
+                  className="border-l border-slate-200 px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-indigo-600"
                 >
                   {department.code ||
                     department.departmentCode}
@@ -1039,7 +1039,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
               ))}
 
 
-            <th className="border-l border-slate-200 bg-green-50 px-5 py-4 text-center text-xs font-bold uppercase tracking-wide text-green-700">
+            <th className="border-l border-slate-200 bg-green-50 px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-green-700">
               Total
             </th>
 
@@ -1059,14 +1059,14 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
                 {/* S.NO */}
 
-                <td className="px-5 py-4 text-sm text-slate-500">
+                <td className="px-4 py-2.5 text-sm text-slate-500">
                   {index + 1}
                 </td>
 
 
                 {/* CLUB */}
 
-                <td className="px-5 py-4">
+                <td className="px-4 py-2.5">
 
                   <p className="font-bold text-slate-800">
                     {club.name}
@@ -1107,7 +1107,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
                       <td
                         key={`${club._id}-${department._id}`}
-                        className="border-l border-slate-100 px-5 py-4 text-center"
+                        className="border-l border-slate-100 px-4 py-2.5 text-center"
                       >
 
                         <span
@@ -1129,7 +1129,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
                 {/* CLUB TOTAL */}
 
-                <td className="border-l border-slate-200 bg-green-50 px-5 py-4 text-center">
+                <td className="border-l border-slate-200 bg-green-50 px-4 py-2.5 text-center">
 
                   <span className="inline-flex rounded-lg bg-green-100 px-4 py-2 font-extrabold text-green-700">
 
@@ -1188,7 +1188,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
                         String(clubTableDepartmentFilter)
                   ).length + 3
                 }
-                className="px-5 py-12 text-center"
+                className="px-5 py-9 text-center"
               >
 
                 <div className="text-3xl">
@@ -1216,7 +1216,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
             <td
               colSpan="2"
-              className="px-5 py-4 font-extrabold text-indigo-800"
+              className="px-4 py-2.5 font-extrabold text-indigo-800"
             >
               GRAND TOTAL
             </td>
@@ -1256,7 +1256,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
                   <td
                     key={`total-${department._id}`}
-                    className="border-l border-slate-200 px-5 py-4 text-center font-extrabold text-indigo-700"
+                    className="border-l border-slate-200 px-4 py-2.5 text-center font-extrabold text-indigo-700"
                   >
                     {total}
                   </td>
@@ -1266,7 +1266,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
               })}
 
 
-            <td className="border-l border-slate-200 bg-green-50 px-5 py-4 text-center text-lg font-extrabold text-green-700">
+            <td className="border-l border-slate-200 bg-green-50 px-4 py-2.5 text-center text-lg font-extrabold text-green-700">
               {filteredClubs.reduce(
                 (grand, club) =>
                   grand +
@@ -1319,7 +1319,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
             REGISTER BUTTON
         ================================================= */}
 
-        <div className="mt-7 rounded-2xl bg-gradient-to-r from-red-600 to-orange-500 p-6 text-center shadow-lg sm:p-8">
+        <div className="mt-5 rounded-2xl bg-gradient-to-r from-red-600 to-orange-500 p-6 text-center shadow-lg sm:p-8">
 
           <p className="text-sm font-semibold uppercase tracking-wide text-orange-100">
             Student Registration
@@ -1351,7 +1351,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       <footer className="border-t bg-white">
 
-        <div className="mx-auto max-w-7xl px-5 py-6 text-center text-sm text-slate-500">
+        <div className="mx-auto max-w-7xl px-5 py-4 text-center text-sm text-slate-500">
           KPT Club Management System
         </div>
 
