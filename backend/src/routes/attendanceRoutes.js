@@ -6,6 +6,7 @@ import {
   viewAttendance,
   getConsolidatedAttendance,
   getStudentAttendance,
+  getClubAttendanceDetails,
 } from "../controllers/attendanceController.js";
 
 import requireAuth from "../middleware/authMiddleware.js";
@@ -58,6 +59,13 @@ router.get(
   requireAuth,
   resolveUser,
   getStudentAttendance
+);
+
+router.get(
+  "/club-details",
+  requireAuth,
+  resolveUser,
+  getClubAttendanceDetails
 );
 
 export default router;

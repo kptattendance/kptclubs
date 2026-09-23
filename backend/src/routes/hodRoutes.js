@@ -9,6 +9,8 @@ import {
   rejectHODApplication,
   getHODDashboard,
   getHODDepartmentStudents,
+  updateClubStudent,
+  deleteHODStudent,
 } from "../controllers/hodController.js";
 
 const router = express.Router();
@@ -54,5 +56,19 @@ router.put(
   rejectHODApplication
 );
 
+
+router.put(
+  "/students/:studentId",
+  requireAuth,
+  resolveUser,
+  updateClubStudent
+);
+
+router.delete(
+  "/students/:studentId",
+  requireAuth,
+  resolveUser,
+  deleteHODStudent
+);
 
 export default router;

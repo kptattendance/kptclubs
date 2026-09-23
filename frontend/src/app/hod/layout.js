@@ -54,16 +54,11 @@ export default function HODLayout({ children }) {
 
       {/* SIDEBAR */}
       <aside
-        className={`
-          fixed left-0 top-0 z-50 h-screen w-64 border-r bg-white
-          transition-transform duration-300
-          md:translate-x-0
-          ${
-            mobileMenuOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
-        `}
+        className={`fixed left-0 top-0 z-50 h-screen w-64 border-r bg-white transition-transform duration-300 md:translate-x-0 ${
+          mobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+        }`}
       >
 
         {/* LOGO */}
@@ -102,16 +97,11 @@ export default function HODLayout({ children }) {
                   key={item.href}
                   href={item.href}
                   onClick={handleMenuClick}
-                  className={`
-                    flex items-center gap-3 rounded-lg
-                    px-3 py-3 text-sm font-medium
-                    transition
-                    ${
-                      isActive
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }
-                  `}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${
+                    isActive
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
                 >
                   <span className="text-xl">
                     {item.icon}
@@ -132,14 +122,7 @@ export default function HODLayout({ children }) {
       <main className="min-h-screen md:ml-64">
 
         {/* TOP BAR */}
-        <header
-          className="
-            sticky top-0 z-30
-            flex h-16 items-center justify-between
-            border-b bg-white
-            px-4 sm:px-6 md:px-8
-          "
-        >
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 sm:px-6 md:px-8">
 
           {/* LEFT SIDE */}
           <div className="flex items-center gap-3">
@@ -150,13 +133,7 @@ export default function HODLayout({ children }) {
               onClick={() =>
                 setMobileMenuOpen(!mobileMenuOpen)
               }
-              className="
-                flex h-10 w-10 items-center justify-center
-                rounded-lg border border-gray-200
-                text-gray-700
-                hover:bg-gray-50
-                md:hidden
-              "
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 md:hidden"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (

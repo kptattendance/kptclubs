@@ -2,6 +2,404 @@ import Attendance from "../models/Attendance.js";
 import ClubMembership from "../models/ClubMembership.js";
 import StudentProfile from "../models/StudentProfile.js";
 
+import Certificate from "../models/Certificate.js";
+
+// ========================================================
+// GET DETAILED CLUB ATTENDANCE
+// HOD / ADMIN / PRINCIPAL / CLUB INCHARGE
+// ========================================================
+
+export const getClubAttendanceDetails = async (req, res) => {
+  try {
+    // ========================================================
+    // ALLOWED ROLES
+    // ========================================================
+
+    const allowedRoles = [
+      "CLUB_INCHARGE",
+      "HOD",
+      "ADMIN",
+      "PRINCIPAL",
+    ];
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view attendance",
+      });
+    }
+
+    // ========================================================
+    // CLUB ID
+    // ========================================================
+
+    const { clubId } = req.query;
+
+    if (!clubId) {
+      return res.status(400).json({
+        success: false,
+        message: "Club is required",
+      });
+    }
+
+    // ========================================================
+    // HOD DEPARTMENT CHECK
+    // ========================================================
+
+    if (
+      req.user.role === "HOD" &&
+      !req.user.departmentId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Department is not assigned to this HOD",
+      });
+    }
+
+    // ========================================================
+    // GET CONFIRMED MEMBERS
+    // ========================================================
+
+    const memberships = await ClubMembership.find({
+      clubId,
+      status: "CONFIRMED",
+    })
+      .populate({
+        path: "studentId",
+        populate: [
+          {
+            path: "departmentId",
+            select: "code name",
+          },
+          {
+            path: "userId",
+            select: "name email phone profilePhoto",
+          },
+        ],
+      })
+      .sort({
+        createdAt: 1,
+      });
+
+    // ========================================================
+    // HOD:
+    // ONLY STUDENTS FROM HOD DEPARTMENT
+    // ========================================================
+
+    const filteredMemberships =
+      req.user.role === "HOD"
+        ? memberships.filter((membership) => {
+            const student = membership.studentId;
+
+            if (!student?.departmentId) {
+              return false;
+            }
+
+            return (
+              String(student.departmentId._id) ===
+              String(req.user.departmentId)
+            );
+          })
+        : memberships;
+
+    // ========================================================
+    // GET ALL ATTENDANCE RECORDS FOR THIS CLUB
+    // ========================================================
+
+    const attendanceRecords = await Attendance.find({
+      clubId,
+    }).sort({
+      attendanceDate: 1,
+    });
+
+    // ========================================================
+    // GET UNIQUE CLASS DATES
+    // ========================================================
+
+    const classDateSet = new Set();
+
+    attendanceRecords.forEach((record) => {
+      if (!record.attendanceDate) {
+        return;
+      }
+
+      const date = new Date(record.attendanceDate)
+        .toISOString()
+        .split("T")[0];
+
+      classDateSet.add(date);
+    });
+
+    const classDates = Array.from(
+      classDateSet
+    ).sort();
+
+    const totalClasses = classDates.length;
+
+    // ========================================================
+    // GROUP ATTENDANCE BY STUDENT
+    // ========================================================
+
+    const attendanceMap = new Map();
+
+    attendanceRecords.forEach((record) => {
+      if (
+        !record.studentId ||
+        !record.attendanceDate
+      ) {
+        return;
+      }
+
+      const studentId =
+        record.studentId.toString();
+
+      if (!attendanceMap.has(studentId)) {
+        attendanceMap.set(studentId, []);
+      }
+
+      const dateObject =
+        new Date(record.attendanceDate);
+
+      attendanceMap.get(studentId).push({
+        date: dateObject
+          .toISOString()
+          .split("T")[0],
+
+        day: dateObject.toLocaleDateString(
+          "en-IN",
+          {
+            weekday: "long",
+            timeZone: "UTC",
+          }
+        ),
+
+        status: record.status,
+
+        markedAt:
+          record.markedAt || null,
+
+        submittedAt:
+          record.submittedAt || null,
+      });
+    });
+
+    // ========================================================
+    // BUILD STUDENT DATA
+    // ========================================================
+
+    const students = [];
+
+    for (const membership of filteredMemberships) {
+      const student =
+        membership.studentId;
+
+      if (!student) {
+        continue;
+      }
+
+      const studentId =
+        student._id.toString();
+
+      const history =
+        attendanceMap.get(studentId) || [];
+
+      const attendedClasses =
+        history.filter(
+          (record) =>
+            record.status === "PRESENT"
+        ).length;
+
+      const studentTotalClasses =
+        history.length;
+
+      const percentage =
+        studentTotalClasses > 0
+          ? Number(
+              (
+                (attendedClasses /
+                  studentTotalClasses) *
+                100
+              ).toFixed(2)
+            )
+          : 0;
+
+      // ======================================================
+      // CERTIFICATE
+      // ======================================================
+
+      const certificate =
+        await Certificate.findOne({
+          studentId: student._id,
+          clubId,
+        }).select(
+          "_id certificateNumber status approvedAt issuedAt"
+        );
+
+      const certificateStatus =
+        certificate?.status || null;
+
+      const certificateAllowed =
+        certificateStatus === "APPROVED" ||
+        certificateStatus === "ISSUED";
+
+      students.push({
+        studentId: student._id,
+
+        name:
+          student.userId?.name || "",
+
+        email:
+          student.userId?.email || "",
+
+        phone:
+          student.userId?.phone || "",
+
+        registerNumber:
+          student.registerNumber || "",
+
+        department:
+          student.departmentId
+            ? {
+                _id:
+                  student.departmentId._id,
+
+                code:
+                  student.departmentId.code,
+
+                name:
+                  student.departmentId.name,
+              }
+            : null,
+
+        semester:
+          student.semester,
+
+        admissionYear:
+          student.admissionYear,
+
+        photoUrl:
+          student.photoUrl ||
+          student.userId?.profilePhoto ||
+          null,
+
+        attendedClasses,
+
+        totalClasses:
+          studentTotalClasses,
+
+        percentage,
+
+        attendanceHistory:
+          history,
+
+        certificateId:
+          certificate?._id || null,
+
+        certificateNumber:
+          certificate?.certificateNumber ||
+          null,
+
+        certificateStatus,
+
+        certificateAllowed,
+
+        approvedAt:
+          certificate?.approvedAt || null,
+
+        issuedAt:
+          certificate?.issuedAt || null,
+      });
+    }
+
+    // ========================================================
+    // SORT
+    // ========================================================
+
+    students.sort((a, b) =>
+      String(
+        a.registerNumber || ""
+      ).localeCompare(
+        String(
+          b.registerNumber || ""
+        )
+      )
+    );
+
+    // ========================================================
+    // SUMMARY
+    // ========================================================
+
+    const certificateAllowedCount =
+      students.filter(
+        (student) =>
+          student.certificateAllowed
+      ).length;
+
+    const attendance75Plus =
+      students.filter(
+        (student) =>
+          student.percentage >= 75
+      ).length;
+
+    const averageAttendance =
+      students.length > 0
+        ? Number(
+            (
+              students.reduce(
+                (sum, student) =>
+                  sum +
+                  Number(
+                    student.percentage || 0
+                  ),
+                0
+              ) / students.length
+            ).toFixed(2)
+          )
+        : 0;
+
+    // ========================================================
+    // RESPONSE
+    // ========================================================
+
+    return res.status(200).json({
+      success: true,
+
+      clubId,
+
+      totalClasses,
+
+      classDates,
+
+      count: students.length,
+
+      summary: {
+        totalStudents:
+          students.length,
+
+        averageAttendance,
+
+        attendance75Plus,
+
+        certificateAllowed:
+          certificateAllowedCount,
+      },
+
+      students,
+    });
+
+  } catch (error) {
+    console.error(
+      "Get club attendance details error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to load detailed attendance",
+    });
+  }
+};
 
 /* =========================================================
    GET STUDENT CONSOLIDATED ATTENDANCE

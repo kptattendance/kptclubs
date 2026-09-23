@@ -6,6 +6,259 @@ import ClubMembership from "../models/ClubMembership.js";
 import Club from "../models/Club.js";
 import Department from "../models/Department.js";
 
+import Attendance from "../models/Attendance.js";
+import Certificate from "../models/Certificate.js";
+import { clerkClient } from "@clerk/express";
+import cloudinary from "../config/cloudinary.js";
+
+
+
+
+  import mongoose from "mongoose";
+
+// =====================================================
+// DELETE STUDENT BY HOD
+// HOD CAN DELETE ONLY STUDENTS FROM HIS/HER DEPARTMENT
+// =====================================================
+
+export const deleteHODStudent = async (req, res) => {
+  try {
+    console.log("========== DELETE HOD STUDENT ==========");
+
+    const { studentId } = req.params;
+
+    // =================================================
+    // 1. FIND LOGGED-IN HOD
+    // =================================================
+
+    const hod = await User.findOne({
+      clerkUserId: req.clerkUserId,
+    });
+
+    if (!hod) {
+      return res.status(404).json({
+        success: false,
+        message: "HOD user not found",
+      });
+    }
+
+    // =================================================
+    // 2. CHECK ROLE
+    // =================================================
+
+    if (hod.role !== "HOD") {
+      return res.status(403).json({
+        success: false,
+        message: "Only HOD can delete students",
+      });
+    }
+
+    // =================================================
+    // 3. CHECK HOD DEPARTMENT
+    // =================================================
+
+    if (!hod.departmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "No department is assigned to this HOD",
+      });
+    }
+
+    // =================================================
+    // 4. FIND STUDENT PROFILE
+    // =================================================
+
+    const studentProfile =
+      await StudentProfile.findById(studentId);
+
+    if (!studentProfile) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found",
+      });
+    }
+
+    // =================================================
+    // 5. SECURITY CHECK
+    // HOD CAN DELETE ONLY OWN DEPARTMENT STUDENTS
+    // =================================================
+
+    if (
+      studentProfile.departmentId.toString() !==
+      hod.departmentId.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You can delete only students from your department",
+      });
+    }
+
+    // =================================================
+    // 6. FIND MONGO USER
+    // =================================================
+
+    const studentUser =
+      await User.findById(
+        studentProfile.userId
+      );
+
+    if (!studentUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Student user not found",
+      });
+    }
+
+    // =================================================
+    // 7. MAKE SURE IT IS A STUDENT
+    // =================================================
+
+    if (studentUser.role !== "STUDENT") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "The selected user is not a student",
+      });
+    }
+
+    // =================================================
+    // 8. DELETE ALL ATTENDANCE
+    // =================================================
+
+    await Attendance.deleteMany({
+      studentId: studentProfile._id,
+    });
+
+    console.log("Attendance deleted");
+
+    // =================================================
+    // 9. DELETE ALL CERTIFICATES
+    // =================================================
+
+    await Certificate.deleteMany({
+      studentId: studentProfile._id,
+    });
+
+    console.log("Certificates deleted");
+
+    // =================================================
+    // 10. DELETE ALL CLUB MEMBERSHIPS
+    // =================================================
+
+    await ClubMembership.deleteMany({
+      studentId: studentProfile._id,
+    });
+
+    console.log("Club memberships deleted");
+
+    // =================================================
+    // 11. DELETE STUDENT PROFILE
+    // =================================================
+
+    await StudentProfile.findByIdAndDelete(
+      studentProfile._id
+    );
+
+    console.log("Student profile deleted");
+
+    // =================================================
+    // 12. DELETE CLOUDINARY PHOTO
+    // =================================================
+
+    if (studentUser.photoPublicId) {
+      try {
+        await cloudinary.uploader.destroy(
+          studentUser.photoPublicId
+        );
+
+        console.log(
+          "Cloudinary photo deleted"
+        );
+      } catch (error) {
+        console.error(
+          "Cloudinary deletion failed:",
+          error
+        );
+
+        // Continue deletion
+      }
+    }
+
+    // =================================================
+    // 13. DELETE CLERK USER
+    // =================================================
+
+    if (studentUser.clerkUserId) {
+      try {
+        await clerkClient.users.deleteUser(
+          studentUser.clerkUserId
+        );
+
+        console.log(
+          "Clerk user deleted:",
+          studentUser.clerkUserId
+        );
+      } catch (error) {
+        // If Clerk user is already missing,
+        // continue with MongoDB deletion.
+
+        if (error?.status === 404) {
+          console.log(
+            "Clerk user already does not exist:",
+            studentUser.clerkUserId
+          );
+        } else {
+          console.error(
+            "Clerk deletion failed:",
+            error
+          );
+
+          return res.status(500).json({
+            success: false,
+            message:
+              "Failed to delete student from Clerk",
+          });
+        }
+      }
+    }
+
+    // =================================================
+    // 14. DELETE MONGO USER
+    // =================================================
+
+    await User.findByIdAndDelete(
+      studentUser._id
+    );
+
+    console.log("Mongo user deleted");
+
+    // =================================================
+    // SUCCESS
+    // =================================================
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Student and all related data deleted successfully",
+    });
+
+  } catch (error) {
+    console.error(
+      "Delete HOD student error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to delete student",
+    });
+  }
+};
+  
+
+
 export const getHODDepartmentStudents = async (req, res) => {
   try {
     console.log("========== HOD DEPARTMENT STUDENTS ==========");
@@ -931,3 +1184,310 @@ export const rejectHODApplication =
       });
     }
   };
+
+
+
+// =====================================================
+// UPDATE STUDENT BY HOD
+// HOD CAN EDIT ONLY STUDENTS FROM HIS/HER DEPARTMENT
+// =====================================================
+
+export const updateClubStudent = async (req, res) => {
+  try {
+    // =================================================
+    // CHECK ROLE
+    // =================================================
+
+    if (req.user?.role !== "HOD") {
+      return res.status(403).json({
+        success: false,
+        message: "Only HOD can edit students",
+      });
+    }
+
+    const { studentId } = req.params;
+
+    const {
+      name,
+      registerNumber,
+      semester,
+    } = req.body;
+
+    // =================================================
+    // CHECK HOD DEPARTMENT
+    // =================================================
+
+    if (!req.user.departmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "No department is assigned to this HOD",
+      });
+    }
+
+    // =================================================
+    // VALIDATE STUDENT ID
+    // =================================================
+
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid student ID",
+      });
+    }
+
+    // =================================================
+    // VALIDATE NAME
+    // =================================================
+
+    const normalizedName = String(name || "")
+      .trim()
+      .replace(/\s+/g, " ");
+
+    if (!normalizedName) {
+      return res.status(400).json({
+        success: false,
+        message: "Student name is required",
+      });
+    }
+
+    if (normalizedName.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Student name must contain at least 2 characters",
+      });
+    }
+
+    // =================================================
+    // VALIDATE REGISTER NUMBER
+    // =================================================
+
+    const normalizedRegisterNumber = String(
+      registerNumber || ""
+    )
+      .trim()
+      .toUpperCase();
+
+    if (!normalizedRegisterNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Register number is required",
+      });
+    }
+
+    // =================================================
+    // VALIDATE SEMESTER
+    // =================================================
+
+    const normalizedSemester = Number(semester);
+
+    if (
+      !Number.isInteger(normalizedSemester) ||
+      normalizedSemester < 1 ||
+      normalizedSemester > 6
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Semester must be between 1 and 6",
+      });
+    }
+
+    // =================================================
+    // FIND STUDENT PROFILE
+    // =================================================
+
+    const student =
+      await StudentProfile.findById(studentId);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found",
+      });
+    }
+
+    // =================================================
+    // CHECK STUDENT BELONGS TO HOD DEPARTMENT
+    // =================================================
+
+    if (
+      String(student.departmentId) !==
+      String(req.user.departmentId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You can edit only students from your department",
+      });
+    }
+
+    // =================================================
+    // FIND STUDENT USER
+    // =================================================
+
+    const user = await User.findById(
+      student.userId
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Student user account not found",
+      });
+    }
+
+    // =================================================
+    // MAKE SURE USER IS A STUDENT
+    // =================================================
+
+    if (user.role !== "STUDENT") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "The selected user is not a student",
+      });
+    }
+
+    // =================================================
+    // CHECK DUPLICATE REGISTER NUMBER
+    // =================================================
+
+    const duplicateRegisterNumber =
+      await StudentProfile.findOne({
+        registerNumber:
+          normalizedRegisterNumber,
+
+        _id: {
+          $ne: student._id,
+        },
+      }).select("_id");
+
+    if (duplicateRegisterNumber) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This register number is already registered to another student",
+      });
+    }
+
+    // =================================================
+    // UPDATE USER NAME
+    // =================================================
+
+    user.name = normalizedName;
+
+    await user.save();
+
+    // =================================================
+    // UPDATE STUDENT PROFILE
+    // =================================================
+
+    student.registerNumber =
+      normalizedRegisterNumber;
+
+    student.semester =
+      normalizedSemester;
+
+    await student.save();
+
+    // =================================================
+    // GET UPDATED STUDENT
+    // =================================================
+
+    const updatedStudent =
+      await StudentProfile.findById(
+        student._id
+      )
+        .populate(
+          "userId",
+          "name email phone profilePhoto"
+        )
+        .populate(
+          "departmentId",
+          "code name"
+        );
+
+    // =================================================
+    // RESPONSE
+    // =================================================
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "Student details updated successfully",
+
+      student: {
+        id: updatedStudent._id,
+
+        name:
+          updatedStudent.userId?.name || "",
+
+        email:
+          updatedStudent.userId?.email || "",
+
+        phone:
+          updatedStudent.phone ||
+          updatedStudent.userId?.phone ||
+          "",
+
+        registerNumber:
+          updatedStudent.registerNumber,
+
+        semester:
+          updatedStudent.semester,
+
+        admissionYear:
+          updatedStudent.admissionYear,
+
+        photoUrl:
+          updatedStudent.photoUrl ||
+          updatedStudent.userId?.profilePhoto ||
+          null,
+
+        department:
+          updatedStudent.departmentId
+            ? {
+                _id:
+                  updatedStudent
+                    .departmentId._id,
+
+                code:
+                  updatedStudent
+                    .departmentId.code,
+
+                name:
+                  updatedStudent
+                    .departmentId.name,
+              }
+            : null,
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      "Update HOD student error:",
+      error
+    );
+
+    // =================================================
+    // DUPLICATE KEY ERROR
+    // =================================================
+
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This register number is already registered",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to update student",
+    });
+  }
+};

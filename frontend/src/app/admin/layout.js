@@ -127,19 +127,7 @@ export default function AdminLayout({ children }) {
             onClick={() => router.push("/admin/clubs")}
           />
 
-          <SidebarItem
-            title="Attendance"
-            icon="✓"
-            active={pathname.startsWith("/admin/attendance")}
-            onClick={() => router.push("/admin/attendance")}
-          />
-
-          <SidebarItem
-            title="Reports"
-            icon="▤"
-            active={pathname.startsWith("/admin/reports")}
-            onClick={() => router.push("/admin/reports")}
-          />
+       
 
         </nav>
 
