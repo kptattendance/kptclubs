@@ -20,10 +20,10 @@ export default function AttendancePage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  const [search, setSearch] = useState("");
-  const [branchFilter, setBranchFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+const [search, setSearch] = useState("");
+const [branchFilter, setBranchFilter] = useState("ALL");
+const [semesterFilter, setSemesterFilter] = useState("ALL");
+const [statusFilter, setStatusFilter] = useState("ALL");
 
   // =====================================================
   // LOAD STUDENTS
@@ -253,6 +253,8 @@ export default function AttendancePage() {
         )
       : 0;
 
+
+
   // =====================================================
   // BRANCH OPTIONS
   // =====================================================
@@ -273,32 +275,37 @@ export default function AttendancePage() {
   // FILTER STUDENTS
   // =====================================================
 
-  const filteredStudents = useMemo(() => {
-    let result = [...students];
+ const filteredStudents = useMemo(() => {
+  let result = [...students].sort((a, b) =>
+    (a.name || "").localeCompare(
+      b.name || "",
+      undefined,
+      { sensitivity: "base" }
+    )
+  );
 
-    if (search.trim()) {
-      const query = search
-        .toLowerCase()
-        .trim();
+  if (search.trim()) {
+    const query = search.toLowerCase().trim();
 
-      result = result.filter((student) => {
-        const name =
-          student.name?.toLowerCase() || "";
+    result = result.filter((student) => {
+      const name =
+        student.name?.toLowerCase() || "";
 
-        const registerNumber =
-          student.registerNumber
-            ?.toLowerCase() || "";
+      const registerNumber =
+        student.registerNumber?.toLowerCase() || "";
 
-        const email =
-          student.email?.toLowerCase() || "";
+      const email =
+        student.email?.toLowerCase() || "";
 
-        return (
-          name.includes(query) ||
-          registerNumber.includes(query) ||
-          email.includes(query)
-        );
-      });
-    }
+      return (
+        name.includes(query) ||
+        registerNumber.includes(query) ||
+        email.includes(query)
+      );
+    });
+  }
+
+  // keep the remaining filter code unchanged...
 
     if (branchFilter !== "ALL") {
       result = result.filter((student) => {
@@ -309,7 +316,12 @@ export default function AttendancePage() {
         return branch === branchFilter;
       });
     }
-
+if (semesterFilter !== "ALL") {
+  result = result.filter(
+    (student) =>
+      String(student.semester) === String(semesterFilter)
+  );
+}
     if (statusFilter === "PRESENT") {
       result = result.filter(
         (student) =>
@@ -335,22 +347,24 @@ export default function AttendancePage() {
 
     return result;
   }, [
-    students,
-    search,
-    branchFilter,
-    statusFilter,
-    attendance,
+   students,
+  search,
+  branchFilter,
+  semesterFilter,
+  statusFilter,
+  attendance,
   ]);
 
   // =====================================================
   // CLEAR FILTERS
   // =====================================================
 
-  const clearFilters = () => {
-    setSearch("");
-    setBranchFilter("ALL");
-    setStatusFilter("ALL");
-  };
+ const clearFilters = () => {
+  setSearch("");
+  setBranchFilter("ALL");
+  setSemesterFilter("ALL");
+  setStatusFilter("ALL");
+};
 
   // =====================================================
   // FORMAT DATE
@@ -616,10 +630,11 @@ export default function AttendancePage() {
                     Student Attendance
                   </h2>
 
-                  <p className="text-xs text-gray-500">
-                    Showing {filteredStudents.length} of{" "}
-                    {students.length} students
-                  </p>
+<p className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+  Showing {filteredStudents.length} of {students.length} students
+</p>
+
+             
 
                 </div>
 
@@ -632,7 +647,7 @@ export default function AttendancePage() {
 
               <div className="border-b border-gray-200 bg-gray-50 p-3 sm:p-4">
 
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
 
                   <input
                     type="text"
@@ -664,6 +679,20 @@ export default function AttendancePage() {
                       </option>
                     ))}
                   </select>
+
+                  <select
+  value={semesterFilter}
+  onChange={(e) => setSemesterFilter(e.target.value)}
+  className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500"
+>
+  <option value="ALL">All Semesters</option>
+  <option value="1">Semester 1</option>
+  <option value="2">Semester 2</option>
+  <option value="3">Semester 3</option>
+  <option value="4">Semester 4</option>
+  <option value="5">Semester 5</option>
+  <option value="6">Semester 6</option>
+</select>
 
                   <select
                     value={statusFilter}
@@ -938,41 +967,28 @@ export default function AttendancePage() {
 
                           {/* MOBILE BUTTONS */}
 
-                          <div className="mt-3 grid grid-cols-2 gap-2">
+                         {/* MOBILE BUTTONS */}
+<div className="mt-3 grid grid-cols-2 gap-2">
+  <AttendanceButton
+    active={currentStatus === "PRESENT"}
+    type="present"
+    disabled={submitted}
+    onClick={() =>
+      markAttendance(student.studentId, "PRESENT")
+    }
+    mobile
+  />
 
-                            <AttendanceButton
-                              active={
-                                currentStatus ===
-                                "PRESENT"
-                              }
-                              type="present"
-                              disabled={submitted}
-                              onClick={() =>
-                                markAttendance(
-                                  student.studentId,
-                                  "PRESENT"
-                                )
-                              }
-                              mobile
-                            />
-
-                            <AttendanceButton
-                              active={
-                                currentStatus ===
-                                "ABSENT"
-                              }
-                              type="absent"
-                              disabled={submitted}
-                              onClick={() =>
-                                markAttendance(
-                                  student.studentId,
-                                  "ABSENT"
-                                )
-                              }
-                              mobile
-                            />
-
-                          </div>
+  <AttendanceButton
+    active={currentStatus === "ABSENT"}
+    type="absent"
+    disabled={submitted}
+    onClick={() =>
+      markAttendance(student.studentId, "ABSENT")
+    }
+    mobile
+  />
+</div>
 
                         </div>
                       );
@@ -989,51 +1005,86 @@ export default function AttendancePage() {
 
       </div>
 
+{/* =================================================
+    SUBMIT ATTENDANCE
+================================================= */}
 
-      {/* =================================================
-          MOBILE SUBMIT BAR
-      ================================================= */}
+{!loading && students.length > 0 && !submitted && (
+  <div className="mt-5">
+    
+    {/* Desktop Submit Section */}
+    <div className="hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 md:block">
+      <div className="flex items-center justify-between gap-4">
+        
+        <div>
+          <p className="text-sm font-semibold text-gray-800">
+            Attendance Submission
+          </p>
 
-      {!loading &&
-        students.length > 0 &&
-        !submitted && (
+          <p className="mt-1 text-xs text-gray-500">
+            {unmarkedCount === 0
+              ? "All students have been marked."
+              : `${unmarkedCount} student${
+                  unmarkedCount > 1 ? "s" : ""
+                } still need${
+                  unmarkedCount === 1 ? "s" : ""
+                } attendance.`}
+          </p>
+        </div>
 
-          <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white p-3 shadow-lg md:hidden">
+        <div className="flex items-center gap-4">
+          
+          <span className="text-sm font-bold text-blue-600">
+            {completionPercentage}%
+          </span>
 
-            <div className="mx-auto max-w-7xl">
+          <button
+            type="button"
+            onClick={submitAttendance}
+            disabled={submitting || unmarkedCount > 0}
+            className="h-11 rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting
+              ? "Submitting..."
+              : "Submit Attendance"}
+          </button>
 
-              <div className="mb-2 flex items-center justify-between">
+        </div>
+      </div>
+    </div>
 
-                <span className="text-xs text-gray-500">
-                  {unmarkedCount === 0
-                    ? "All attendance marked"
-                    : `${unmarkedCount} remaining`}
-                </span>
+    {/* Mobile Submit Section */}
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white p-3 shadow-lg md:hidden">
+      <div className="mx-auto max-w-7xl">
 
-                <span className="text-sm font-bold text-blue-600">
-                  {completionPercentage}%
-                </span>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs text-gray-500">
+            {unmarkedCount === 0
+              ? "All attendance marked"
+              : `${unmarkedCount} remaining`}
+          </span>
 
-              </div>
+          <span className="text-sm font-bold text-blue-600">
+            {completionPercentage}%
+          </span>
+        </div>
 
-              <button
-                type="button"
-                onClick={submitAttendance}
-                disabled={
-                  submitting ||
-                  unmarkedCount > 0
-                }
-                className="h-11 w-full rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting
-                  ? "Submitting..."
-                  : "Submit Attendance"}
-              </button>
+        <button
+          type="button"
+          onClick={submitAttendance}
+          disabled={submitting || unmarkedCount > 0}
+          className="h-11 w-full rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting
+            ? "Submitting..."
+            : "Submit Attendance"}
+        </button>
 
-            </div>
+      </div>
+    </div>
 
-          </div>
-        )}
+  </div>
+)}
 
     </main>
   );
@@ -1070,7 +1121,6 @@ function SummaryBox({
 // =====================================================
 // ATTENDANCE BUTTON
 // =====================================================
-
 function AttendanceButton({
   active,
   type,
@@ -1115,7 +1165,6 @@ function AttendanceButton({
     </button>
   );
 }
-
 
 // =====================================================
 // STUDENT PHOTO
