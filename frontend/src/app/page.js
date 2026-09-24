@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
 
-export default function RegistrationDashboard() {
-  const [departments, setDepartments] = useState([]);
-  const [clubs, setClubs] = useState([]);
-  const [summary, setSummary] = useState([]);
-const [clubSearch, setClubSearch] = useState("");
+/* =========================================================
+   COLLEGE IMAGES
+========================================================= */
 
+const LOGO_LEFT = "/logo.png";
+const LOGO_CENTER = "/logo3.png";
+const LOGO_RIGHT = "/logo2.png";
+const COLLEGE_PHOTO = "/college-photo.jpg";
 
-// =====================================================
-// MANUAL STUDENT STRENGTH
-// Edit these values whenever required
-// =====================================================
+/* =========================================================
+   MANUAL STUDENT STRENGTH
+========================================================= */
 
 const MANUAL_STRENGTH = {
-  // AUTOMOBILE
   AT: {
     1: 64,
     2: 64,
@@ -26,7 +26,6 @@ const MANUAL_STRENGTH = {
     6: 57,
   },
 
-  // CIVIL
   CE: {
     1: 63,
     2: 63,
@@ -36,7 +35,6 @@ const MANUAL_STRENGTH = {
     6: 43,
   },
 
-  // CHEMICAL
   CH: {
     1: 63,
     2: 63,
@@ -46,7 +44,6 @@ const MANUAL_STRENGTH = {
     6: 63,
   },
 
-  // COMPUTER SCIENCE
   CS: {
     1: 62,
     2: 62,
@@ -56,7 +53,6 @@ const MANUAL_STRENGTH = {
     6: 64,
   },
 
-  // E&C
   EC: {
     1: 63,
     2: 63,
@@ -66,7 +62,6 @@ const MANUAL_STRENGTH = {
     6: 68,
   },
 
-  // E&E
   EE: {
     1: 63,
     2: 63,
@@ -76,7 +71,6 @@ const MANUAL_STRENGTH = {
     6: 61,
   },
 
-  // MECHANICAL
   ME: {
     1: 63,
     2: 63,
@@ -86,7 +80,6 @@ const MANUAL_STRENGTH = {
     6: 60,
   },
 
-  // POLYMER
   PO: {
     1: 42,
     2: 42,
@@ -97,12 +90,57 @@ const MANUAL_STRENGTH = {
   },
 };
 
-  // Filters used only for the Club-wise table
+/* =========================================================
+   HIDE SCIENCE DEPARTMENT
+========================================================= */
+
+const isScienceDepartment = (department) => {
+  const code = String(
+    department?.code ||
+      department?.departmentCode ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const name = String(
+    department?.name ||
+      department?.departmentName ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+  return (
+    code === "sc" ||
+    code === "science" ||
+    name === "science" ||
+    name === "science department"
+  );
+};
+
+export default function RegistrationDashboard() {
+  const [departments, setDepartments] = useState([]);
+  const [clubs, setClubs] = useState([]);
+  const [summary, setSummary] = useState([]);
+
+  const [departmentFilter, setDepartmentFilter] =
+    useState("ALL");
+
+  const [semesterFilter, setSemesterFilter] =
+    useState("ALL");
+
+  const [clubFilter, setClubFilter] =
+    useState("ALL");
+
+  const [clubSearch, setClubSearch] = useState("");
+
   const [clubTableDepartmentFilter, setClubTableDepartmentFilter] =
     useState("ALL");
 
   const [clubTableSemesterFilter, setClubTableSemesterFilter] =
     useState("ALL");
+
   const [semesterTotals, setSemesterTotals] = useState({
     1: 0,
     2: 0,
@@ -114,56 +152,94 @@ const MANUAL_STRENGTH = {
 
   const [grandTotal, setGrandTotal] = useState(0);
 
-  const [departmentFilter, setDepartmentFilter] =
-    useState("ALL");
-
-  const [semesterFilter, setSemesterFilter] =
-    useState("ALL");
-
-  const [clubFilter, setClubFilter] =
-    useState("ALL");
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /* =========================================================
+     VISIBLE DEPARTMENTS
+  ========================================================= */
 
-const getDepartmentStrength = (departmentCode, semester) => {
-  const code = String(departmentCode || "")
-    .trim()
-    .toUpperCase();
+  const visibleDepartments = useMemo(() => {
+    return departments.filter(
+      (department) =>
+        !isScienceDepartment(department)
+    );
+  }, [departments]);
 
-  return Number(
-    MANUAL_STRENGTH[code]?.[semester] || 0
-  );
-};
+  const visibleSummary = useMemo(() => {
+    return summary.filter(
+      (department) =>
+        !isScienceDepartment(department)
+    );
+  }, [summary]);
 
-const getDepartmentTotalStrength = (departmentCode) => {
-  return (
-    getDepartmentStrength(departmentCode, 1) +
-    getDepartmentStrength(departmentCode, 3) +
-    getDepartmentStrength(departmentCode, 5)
-  );
-};
+  /* =========================================================
+     STRENGTH
+  ========================================================= */
 
-  const getClubDepartmentData = (club, department) => {
+  const getDepartmentStrength = (
+    departmentCode,
+    semester
+  ) => {
+    const code = String(departmentCode || "")
+      .trim()
+      .toUpperCase();
+
+    return Number(
+      MANUAL_STRENGTH[code]?.[semester] || 0
+    );
+  };
+
+  const getDepartmentTotalStrength = (
+    departmentCode
+  ) => {
+    return (
+      getDepartmentStrength(departmentCode, 1) +
+      getDepartmentStrength(departmentCode, 3) +
+      getDepartmentStrength(departmentCode, 5)
+    );
+  };
+
+  /* =========================================================
+     CLUB DEPARTMENT DATA
+  ========================================================= */
+
+  const getClubDepartmentData = (
+    club,
+    department
+  ) => {
     const data = club?.departments;
 
     if (!data) return {};
 
-    // If backend returns departments as an array
     if (Array.isArray(data)) {
-      const departmentId = String(department?._id || "").trim();
+      const departmentId = String(
+        department?._id || ""
+      ).trim();
+
       const departmentCode = String(
-        department?.code || department?.departmentCode || ""
-      ).trim().toLowerCase();
+        department?.code ||
+          department?.departmentCode ||
+          ""
+      )
+        .trim()
+        .toLowerCase();
+
       const departmentName = String(
-        department?.name || department?.departmentName || ""
-      ).trim().toLowerCase();
+        department?.name ||
+          department?.departmentName ||
+          ""
+      )
+        .trim()
+        .toLowerCase();
 
       return (
         data.find((item) => {
           const itemId = String(
-            item?.departmentId || item?._id || item?.department?._id || ""
+            item?.departmentId ||
+              item?._id ||
+              item?.department?._id ||
+              ""
           ).trim();
 
           const itemCode = String(
@@ -185,15 +261,17 @@ const getDepartmentTotalStrength = (departmentCode) => {
             .toLowerCase();
 
           return (
-            (departmentId && itemId === departmentId) ||
-            (departmentCode && itemCode === departmentCode) ||
-            (departmentName && itemName === departmentName)
+            (departmentId &&
+              itemId === departmentId) ||
+            (departmentCode &&
+              itemCode === departmentCode) ||
+            (departmentName &&
+              itemName === departmentName)
           );
         }) || {}
       );
     }
 
-    // If backend returns departments as an object
     const possibleKeys = [
       department?._id,
       department?.code,
@@ -208,103 +286,132 @@ const getDepartmentTotalStrength = (departmentCode) => {
       }
     }
 
-    // Case-insensitive fallback for object keys
     const keys = Object.keys(data);
 
     const matchingKey = keys.find((key) => {
-      const normalizedKey = String(key).trim().toLowerCase();
+      const normalizedKey = String(key)
+        .trim()
+        .toLowerCase();
 
       return possibleKeys.some(
         (possibleKey) =>
           normalizedKey ===
-          String(possibleKey).trim().toLowerCase()
+          String(possibleKey)
+            .trim()
+            .toLowerCase()
       );
     });
 
-    return matchingKey ? data[matchingKey] || {} : {};
+    return matchingKey
+      ? data[matchingKey] || {}
+      : {};
   };
 
-  // -----------------------------------------------------
-  // Filter clubs only once.
-  // This also fixes the "No club found" message appearing
-  // when the search box is empty.
-  // -----------------------------------------------------
-  const filteredClubs = clubs.filter((club) => {
-    const search = clubSearch.toLowerCase().trim();
+  /* =========================================================
+     FILTER CLUBS
+  ========================================================= */
 
-    // Club name/code search
-    if (
-      search &&
-      !(
-        club.name?.toLowerCase().includes(search) ||
-        club.code?.toLowerCase().includes(search)
-      )
-    ) {
-      return false;
-    }
+  const filteredClubs = useMemo(() => {
+    return clubs.filter((club) => {
+      const search = clubSearch
+        .toLowerCase()
+        .trim();
 
-    // Department filter for club table
-    if (clubTableDepartmentFilter !== "ALL") {
-      const selectedDepartment = departments.find(
-        (department) =>
-          String(department._id) ===
-          String(clubTableDepartmentFilter)
-      );
+      if (
+        search &&
+        !(
+          club.name
+            ?.toLowerCase()
+            .includes(search) ||
+          club.code
+            ?.toLowerCase()
+            .includes(search)
+        )
+      ) {
+        return false;
+      }
 
-      if (selectedDepartment) {
-        const departmentData = getClubDepartmentData(
-          club,
-          selectedDepartment
-        );
+      if (
+        clubTableDepartmentFilter !== "ALL"
+      ) {
+        const selectedDepartment =
+          visibleDepartments.find(
+            (department) =>
+              String(department._id) ===
+              String(
+                clubTableDepartmentFilter
+              )
+          );
 
-        // When a semester is also selected, check that
-        // this department has registration in that semester.
-        if (clubTableSemesterFilter !== "ALL") {
-          const count =
-            departmentData.semesters?.[
-              clubTableSemesterFilter
-            ] || 0;
+        if (selectedDepartment) {
+          const departmentData =
+            getClubDepartmentData(
+              club,
+              selectedDepartment
+            );
 
-          if (Number(count) === 0) return false;
-        } else {
-          if (Number(departmentData.total || 0) === 0) {
+          if (
+            clubTableSemesterFilter !== "ALL"
+          ) {
+            const count =
+              departmentData.semesters?.[
+                clubTableSemesterFilter
+              ] || 0;
+
+            if (Number(count) === 0) {
+              return false;
+            }
+          } else if (
+            Number(
+              departmentData.total || 0
+            ) === 0
+          ) {
             return false;
           }
         }
       }
-    }
 
-    // Semester filter without a department filter
-    if (
-      clubTableDepartmentFilter === "ALL" &&
-      clubTableSemesterFilter !== "ALL"
-    ) {
-      const hasRegistrationInSemester = departments.some(
-        (department) => {
-          const departmentData = getClubDepartmentData(
-            club,
-            department
+      if (
+        clubTableDepartmentFilter === "ALL" &&
+        clubTableSemesterFilter !== "ALL"
+      ) {
+        const hasRegistration =
+          visibleDepartments.some(
+            (department) => {
+              const data =
+                getClubDepartmentData(
+                  club,
+                  department
+                );
+
+              return (
+                Number(
+                  data.semesters?.[
+                    clubTableSemesterFilter
+                  ] || 0
+                ) > 0
+              );
+            }
           );
 
-          return (
-            Number(
-              departmentData.semesters?.[
-                clubTableSemesterFilter
-              ] || 0
-            ) > 0
-          );
+        if (!hasRegistration) {
+          return false;
         }
-      );
+      }
 
-      if (!hasRegistrationInSemester) return false;
-    }
+      return true;
+    });
+  }, [
+    clubs,
+    clubSearch,
+    clubTableDepartmentFilter,
+    clubTableSemesterFilter,
+    visibleDepartments,
+  ]);
 
-    return true;
-  });
-
-  // =====================================================
-  // LOAD REGISTRATION DATA
-  // =====================================================
+  /* =========================================================
+     LOAD DATA
+  ========================================================= */
 
   const loadData = async () => {
     try {
@@ -371,10 +478,6 @@ const getDepartmentTotalStrength = (departmentCode) => {
     }
   };
 
-  // =====================================================
-  // LOAD DATA WHEN FILTER CHANGES
-  // =====================================================
-
   useEffect(() => {
     loadData();
   }, [
@@ -383,91 +486,141 @@ const getDepartmentTotalStrength = (departmentCode) => {
     clubFilter,
   ]);
 
-  // =====================================================
-  // CLEAR FILTERS
-  // =====================================================
+  /* =========================================================
+     TOTALS
+  ========================================================= */
 
-  const clearFilters = () => {
+  const year1Strength =
+    visibleSummary.reduce(
+      (total, department) =>
+        total +
+        getDepartmentStrength(
+          department.departmentCode,
+          1
+        ),
+      0
+    );
+
+  const year2Strength =
+    visibleSummary.reduce(
+      (total, department) =>
+        total +
+        getDepartmentStrength(
+          department.departmentCode,
+          3
+        ),
+      0
+    );
+
+  const year3Strength =
+    visibleSummary.reduce(
+      (total, department) =>
+        total +
+        getDepartmentStrength(
+          department.departmentCode,
+          5
+        ),
+      0
+    );
+
+  const totalStrength =
+    year1Strength +
+    year2Strength +
+    year3Strength;
+
+  /* =========================================================
+     CLEAR FILTERS
+  ========================================================= */
+
+  const clearMainFilters = () => {
     setDepartmentFilter("ALL");
     setSemesterFilter("ALL");
     setClubFilter("ALL");
   };
 
+  const clearClubFilters = () => {
+    setClubSearch("");
+    setClubTableDepartmentFilter("ALL");
+    setClubTableSemesterFilter("ALL");
+  };
+
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#f6f8fb]">
 
-   {/* =================================================
-    HEADER / NAVBAR
-================================================= */}
+      {/* =====================================================
+          SIMPLE HEADER
+      ===================================================== */}
 
-<header className="sticky top-0 z-50 border-b bg-white shadow-sm">
+      <header className="border-b border-slate-200 bg-white shadow-sm">
 
-  <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6">
 
-    <div className="flex items-center justify-between gap-4">
+          <div className="relative flex min-h-[82px] items-center justify-between">
 
-      {/* LOGO / TITLE */}
+            {/* LEFT LOGO */}
 
-      <div className="min-w-0">
+            <div className="flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16">
+              <img
+                src={LOGO_LEFT}
+                alt="College Logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
 
-        <h1 className="text-lg font-bold text-slate-800 sm:text-2xl">
-          KPT Club Management
-        </h1>
+            {/* CENTER LOGO */}
 
-        <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-          Student Club Registration
-        </p>
+            <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center sm:h-16 sm:w-16">
+              <img
+                src={LOGO_CENTER}
+                alt="College Logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
 
-      </div>
+            {/* RIGHT */}
 
+            <div className="ml-auto flex items-center gap-2">
 
-      {/* RIGHT SIDE */}
+              <img
+                src={LOGO_RIGHT}
+                alt="College Logo"
+                className="hidden h-14 w-14 object-contain sm:block"
+              />
 
-      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <a
+                href="/sign-in"
+                className="rounded-lg bg-indigo-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 sm:px-5 sm:text-sm"
+              >
+                Sign In
+              </a>
 
-        {/* DASHBOARD LABEL */}
+            </div>
 
-        <div className="hidden rounded-lg bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 sm:block">
-          Registration Dashboard
+          </div>
+
         </div>
 
+      </header>
 
-        {/* SIGN IN */}
+      {/* =====================================================
+          ORANGE NOTICE
+      ===================================================== */}
 
-        <a
-          href="/sign-in"
-          className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
-        >
-          Sign In
-        </a>
+      <section className="bg-gradient-to-r from-red-600 via-orange-500 to-amber-400">
 
-      </div>
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
 
-    </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-  </div>
+            <div className="flex items-start gap-3 sm:items-center sm:gap-4">
 
-</header>
-
-      {/* =================================================
-          IMPORTANT REGISTRATION BANNER
-      ================================================= */}
-
-      <section className="bg-gradient-to-r from-red-600 via-orange-500 to-amber-500">
-
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
-
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-            <div className="flex items-start gap-4">
-
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-lg">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-md">
                 📝
               </div>
 
               <div>
 
-                <p className="text-xs font-bold uppercase tracking-wider text-orange-100">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-orange-100 sm:text-xs">
                   Important Notice
                 </p>
 
@@ -475,7 +628,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
                   Student Club Registration is Compulsory
                 </h2>
 
-                <p className="mt-1 text-sm leading-6 text-orange-50 sm:text-base">
+                <p className="mt-1 text-xs text-orange-50 sm:text-sm">
                   All students are required to complete
                   their club registration.
                 </p>
@@ -486,7 +639,7 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
             <a
               href="/register"
-              className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-extrabold text-red-600 shadow-lg transition hover:bg-orange-50 sm:shrink-0"
+              className="inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-red-600 shadow-lg transition hover:bg-orange-50 sm:w-auto"
             >
               Register Now →
             </a>
@@ -497,866 +650,880 @@ const getDepartmentTotalStrength = (departmentCode) => {
 
       </section>
 
+      {/* =====================================================
+          MAIN CONTENT
+      ===================================================== */}
 
-      {/* =================================================
-          DASHBOARD CONTENT
-      ================================================= */}
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
 
-      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
+        {/* PAGE TITLE */}
 
+        <div className="mb-5">
 
-        {/* =================================================
-            DEPARTMENT TABLE
-        ================================================= */}
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 sm:text-3xl">
+            Registration Dashboard
+          </h1>
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <p className="mt-1 text-sm text-slate-500">
+            Student club registration details
+          </p>
 
-          <div className="border-b px-5 py-3 sm:px-6">
+        </div>
 
-            <h3 className="text-lg font-bold text-slate-800">
-              Department-wise Student Registration Details
-            </h3>
+        {/* ===================================================
+            FILTERS
+        =================================================== */}
 
-            <p className="mt-1 text-sm text-slate-500">
-              Number of confirmed student registrations
-              in each department.
-            </p>
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+
+          <div className="mb-4 flex items-center justify-between">
+
+            <h2 className="text-sm font-bold text-slate-800">
+              Filters
+            </h2>
+
+            {(departmentFilter !== "ALL" ||
+              semesterFilter !== "ALL" ||
+              clubFilter !== "ALL") && (
+              <button
+                type="button"
+                onClick={clearMainFilters}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800"
+              >
+                Clear Filters
+              </button>
+            )}
 
           </div>
 
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+            <select
+              value={departmentFilter}
+              onChange={(e) =>
+                setDepartmentFilter(
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            >
+
+              <option value="ALL">
+                All Departments
+              </option>
+
+              {visibleDepartments.map(
+                (department) => (
+                  <option
+                    key={department._id}
+                    value={department._id}
+                  >
+                    {department.code ||
+                      department.name}
+                  </option>
+                )
+              )}
+
+            </select>
+
+            <select
+              value={semesterFilter}
+              onChange={(e) =>
+                setSemesterFilter(
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            >
+
+              <option value="ALL">
+                All Semesters
+              </option>
+
+              {[1, 2, 3, 4, 5, 6].map(
+                (semester) => (
+                  <option
+                    key={semester}
+                    value={semester}
+                  >
+                    Semester {semester}
+                  </option>
+                )
+              )}
+
+            </select>
+
+            <select
+              value={clubFilter}
+              onChange={(e) =>
+                setClubFilter(e.target.value)
+              }
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            >
+
+              <option value="ALL">
+                All Clubs
+              </option>
+
+              {clubs.map((club) => (
+                <option
+                  key={club._id}
+                  value={club._id}
+                >
+                  {club.name}
+                </option>
+              ))}
+
+            </select>
+
+          </div>
+
+        </section>
+
+        {/* ===================================================
+            COLLEGE PHOTO + DEPARTMENT TABLE
+        =================================================== */}
+
+        <section className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+
+          {/* COLLEGE PHOTO */}
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+            <div className="h-48 sm:h-56 lg:h-full lg:min-h-[390px]">
+
+              <img
+                src={COLLEGE_PHOTO}
+                alt="Karnataka Government Polytechnic Mangaluru"
+                className="h-full w-full object-cover"
+              />
+
+            </div>
+
+          </div>
+
+          {/* DEPARTMENT TABLE */}
+
+          <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+            <div className="border-b border-slate-100 px-5 py-4">
+
+              <h2 className="text-lg font-extrabold text-slate-800">
+                Department-wise Registration
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                Registered students compared with department
+                strength.
+              </p>
+
+            </div>
+
+            {loading ? (
+
+              <Loading />
+
+            ) : error ? (
+
+              <ErrorState
+                error={error}
+                onRetry={loadData}
+              />
+
+            ) : visibleSummary.length === 0 ? (
+
+              <EmptyState />
+
+            ) : (
+
+              <div className="overflow-x-auto">
+
+                <table className="w-full min-w-[720px]">
+
+                  <thead>
+
+                    <tr className="border-b bg-slate-50">
+
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        #
+                      </th>
+
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Department
+                      </th>
+
+                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Year 1
+                        <span className="block text-[9px] normal-case text-slate-300">
+                          Sem 1
+                        </span>
+                      </th>
+
+                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Year 2
+                        <span className="block text-[9px] normal-case text-slate-300">
+                          Sem 3
+                        </span>
+                      </th>
+
+                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Year 3
+                        <span className="block text-[9px] normal-case text-slate-300">
+                          Sem 5
+                        </span>
+                      </th>
+
+                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-indigo-500">
+                        Total
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {visibleSummary.map(
+                      (department, index) => {
+
+                        const code =
+                          department.departmentCode;
+
+                        const strength1 =
+                          getDepartmentStrength(
+                            code,
+                            1
+                          );
+
+                        const strength2 =
+                          getDepartmentStrength(
+                            code,
+                            3
+                          );
+
+                        const strength3 =
+                          getDepartmentStrength(
+                            code,
+                            5
+                          );
+
+                        const registered1 =
+                          Number(
+                            department.semesters?.[
+                              1
+                            ] || 0
+                          );
+
+                        const registered2 =
+                          Number(
+                            department.semesters?.[
+                              3
+                            ] || 0
+                          );
+
+                        const registered3 =
+                          Number(
+                            department.semesters?.[
+                              5
+                            ] || 0
+                          );
+
+                        return (
+                          <tr
+                            key={
+                              department.departmentId
+                            }
+                            className="border-b border-slate-100 hover:bg-slate-50"
+                          >
+
+                            <td className="px-4 py-3 text-sm text-slate-400">
+                              {index + 1}
+                            </td>
+
+                            <td className="px-4 py-3">
+
+                              <div className="flex items-center gap-2">
+
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-[10px] font-extrabold text-indigo-600">
+                                  {code}
+                                </span>
+
+                                <span className="font-bold text-slate-700">
+                                  {
+                                    department.departmentName
+                                  }
+                                </span>
+
+                              </div>
+
+                            </td>
+
+                            <RegistrationCell
+                              registered={
+                                registered1
+                              }
+                              strength={
+                                strength1
+                              }
+                            />
+
+                            <RegistrationCell
+                              registered={
+                                registered2
+                              }
+                              strength={
+                                strength2
+                              }
+                            />
+
+                            <RegistrationCell
+                              registered={
+                                registered3
+                              }
+                              strength={
+                                strength3
+                              }
+                            />
+
+                            <td className="px-4 py-3 text-center">
+
+                              <span className="inline-flex min-w-[80px] justify-center rounded-lg bg-emerald-50 px-2.5 py-2 text-sm font-extrabold text-emerald-700">
+                                {
+                                  Number(
+                                    department.total ||
+                                      0
+                                  )
+                                }{" "}
+                                /{" "}
+                                {getDepartmentTotalStrength(
+                                  code
+                                )}
+                              </span>
+
+                            </td>
+
+                          </tr>
+                        );
+                      }
+                    )}
+
+                    {/* GRAND TOTAL */}
+
+                    <tr className="bg-indigo-50">
+
+                      <td
+                        colSpan="2"
+                        className="px-4 py-3 text-sm font-extrabold text-indigo-800"
+                      >
+                        Grand Total
+                      </td>
+
+                      <td className="px-4 py-3 text-center text-sm font-extrabold text-indigo-700">
+                        {
+                          Number(
+                            semesterTotals?.[1] ||
+                              0
+                          )
+                        }{" "}
+                        / {year1Strength}
+                      </td>
+
+                      <td className="px-4 py-3 text-center text-sm font-extrabold text-indigo-700">
+                        {
+                          Number(
+                            semesterTotals?.[3] ||
+                              0
+                          )
+                        }{" "}
+                        / {year2Strength}
+                      </td>
+
+                      <td className="px-4 py-3 text-center text-sm font-extrabold text-indigo-700">
+                        {
+                          Number(
+                            semesterTotals?.[5] ||
+                              0
+                          )
+                        }{" "}
+                        / {year3Strength}
+                      </td>
+
+                      <td className="px-4 py-3 text-center">
+
+                        <span className="inline-flex min-w-[82px] justify-center rounded-lg bg-emerald-100 px-2.5 py-2 text-sm font-extrabold text-emerald-700">
+                          {grandTotal} /{" "}
+                          {totalStrength}
+                        </span>
+
+                      </td>
+
+                    </tr>
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            )}
+
+          </section>
+
+        </section>
+
+        {/* ===================================================
+            CLUB-WISE TABLE
+        =================================================== */}
+
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+          <div className="border-b border-slate-100 px-5 py-4">
+
+            <div className="flex flex-col gap-4">
+
+              <div>
+
+                <h2 className="text-lg font-extrabold text-slate-800">
+                  Club-wise Registration
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                  Registration count by club and department.
+                </p>
+
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+
+                <input
+                  type="text"
+                  placeholder="Search club..."
+                  value={clubSearch}
+                  onChange={(e) =>
+                    setClubSearch(
+                      e.target.value
+                    )
+                  }
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white"
+                />
+
+                <select
+                  value={
+                    clubTableDepartmentFilter
+                  }
+                  onChange={(e) =>
+                    setClubTableDepartmentFilter(
+                      e.target.value
+                    )
+                  }
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white"
+                >
+
+                  <option value="ALL">
+                    All Departments
+                  </option>
+
+                  {visibleDepartments.map(
+                    (department) => (
+                      <option
+                        key={department._id}
+                        value={department._id}
+                      >
+                        {department.code ||
+                          department.name}
+                      </option>
+                    )
+                  )}
+
+                </select>
+
+                <select
+                  value={
+                    clubTableSemesterFilter
+                  }
+                  onChange={(e) =>
+                    setClubTableSemesterFilter(
+                      e.target.value
+                    )
+                  }
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white"
+                >
+
+                  <option value="ALL">
+                    All Semesters
+                  </option>
+
+                  {[1, 2, 3, 4, 5, 6].map(
+                    (semester) => (
+                      <option
+                        key={semester}
+                        value={semester}
+                      >
+                        Semester {semester}
+                      </option>
+                    )
+                  )}
+
+                </select>
+
+              </div>
+
+              {(clubSearch ||
+                clubTableDepartmentFilter !==
+                  "ALL" ||
+                clubTableSemesterFilter !==
+                  "ALL") && (
+                <button
+                  type="button"
+                  onClick={clearClubFilters}
+                  className="self-start text-xs font-bold text-indigo-600"
+                >
+                  Clear club filters
+                </button>
+              )}
+
+            </div>
+
+          </div>
 
           {loading ? (
 
-            <div className="px-5 py-10 text-center">
-
-              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
-
-              <p className="mt-4 text-sm text-slate-500">
-                Loading registration details...
-              </p>
-
-            </div>
-
-          ) : error ? (
-
-            <div className="px-5 py-9 text-center">
-
-              <p className="font-semibold text-red-600">
-                {error}
-              </p>
-
-              <p className="mt-2 text-sm text-slate-500">
-                Please refresh the page and try again.
-              </p>
-
-            </div>
-
-          ) : summary.length === 0 ? (
-
-            <div className="px-5 py-9 text-center">
-
-              <div className="text-4xl">
-                📋
-              </div>
-
-              <p className="mt-3 font-semibold text-slate-700">
-                No registration data found
-              </p>
-
-            </div>
+            <Loading />
 
           ) : (
 
             <div className="overflow-x-auto">
 
-          <table className="w-full min-w-[850px]">
-
-  <thead className="bg-slate-50">
-
-    <tr className="border-b">
-
-      <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-        #
-      </th>
-
-      <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-        Department
-      </th>
-
-      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
-        Year 1
-      </th>
-
-      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
-        Year 2
-      </th>
-
-      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
-        Year 3
-      </th>
-
-      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-indigo-600">
-        Total
-      </th>
-
-    </tr>
-
-  </thead>
-
-
-  <tbody>
-
-    {summary.map((department, index) => {
-
-      const code = department.departmentCode;
-
-      // Current odd semester:
-      // Year 1 = Sem 1
-      // Year 2 = Sem 3
-      // Year 3 = Sem 5
-
-      const year1Strength =
-        getDepartmentStrength(code, 1);
-
-      const year2Strength =
-        getDepartmentStrength(code, 3);
-
-      const year3Strength =
-        getDepartmentStrength(code, 5);
-
-      const totalStrength =
-        year1Strength +
-        year2Strength +
-        year3Strength;
-
-      const year1Registered =
-        Number(
-          department.semesters?.[1] || 0
-        );
-
-      const year2Registered =
-        Number(
-          department.semesters?.[3] || 0
-        );
-
-      const year3Registered =
-        Number(
-          department.semesters?.[5] || 0
-        );
-
-      return (
-
-        <tr
-          key={department.departmentId}
-          className="border-b border-slate-100 hover:bg-slate-50"
-        >
-
-          {/* SL NO */}
-
-          <td className="px-4 py-2.5 text-sm text-slate-500">
-            {index + 1}
-          </td>
-
-
-          {/* DEPARTMENT */}
-
-          <td className="px-4 py-2.5">
-
-            <p className="font-bold text-slate-500">
-               {department.departmentName} <span className="max-w-[220px] text-xs text-slate-800"> ({code})</span>
-            </p>
-
-            {/* <p >
-             
-            </p> */}
-
-          </td>
-
-
-          {/* YEAR 1 = SEM 1 */}
-
-          <td className="px-4 py-2.5 text-center">
-
-            <span
-              className={`inline-flex min-w-[72px] justify-center rounded-md px-2.5 py-1.5 text-sm font-bold ${
-                year1Registered > 0
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "bg-slate-50 text-slate-500"
-              }`}
-            >
-              {year1Registered} / {year1Strength}
-            </span>
-
-          </td>
-
-
-          {/* YEAR 2 = SEM 3 */}
-
-          <td className="px-4 py-2.5 text-center">
-
-            <span
-              className={`inline-flex min-w-[72px] justify-center rounded-md px-2.5 py-1.5 text-sm font-bold ${
-                year2Registered > 0
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "bg-slate-50 text-slate-500"
-              }`}
-            >
-              {year2Registered} / {year2Strength}
-            </span>
-
-          </td>
-
-
-          {/* YEAR 3 = SEM 5 */}
-
-          <td className="px-4 py-2.5 text-center">
-
-            <span
-              className={`inline-flex min-w-[72px] justify-center rounded-md px-2.5 py-1.5 text-sm font-bold ${
-                year3Registered > 0
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "bg-slate-50 text-slate-500"
-              }`}
-            >
-              {year3Registered} / {year3Strength}
-            </span>
-
-          </td>
-
-
-          {/* TOTAL */}
-
-          <td className="px-4 py-2.5 text-center">
-
-            <span className="inline-flex min-w-[82px] justify-center rounded-md bg-green-50 px-3 py-1.5 font-extrabold text-green-700">
-
-              {Number(department.total || 0)}
-              {" / "}
-              {totalStrength}
-
-            </span>
-
-          </td>
-
-        </tr>
-
-      );
-
-    })}
-
-
-    {/* =================================================
-        GRAND TOTAL
-    ================================================= */}
-
-    <tr className="bg-indigo-50">
-
-      <td
-        colSpan="2"
-        className="px-4 py-2.5 font-extrabold text-indigo-800"
-      >
-        GRAND TOTAL
-      </td>
-
-
-      {/* YEAR 1 TOTAL */}
-
-      <td className="px-4 py-2.5 text-center font-extrabold text-indigo-700">
-
-        {Number(semesterTotals?.[1] || 0)}
-        {" / "}
-
-        {summary.reduce(
-          (total, department) =>
-            total +
-            getDepartmentStrength(
-              department.departmentCode,
-              1
-            ),
-          0
-        )}
-
-      </td>
-
-
-      {/* YEAR 2 TOTAL */}
-
-      <td className="px-4 py-2.5 text-center font-extrabold text-indigo-700">
-
-        {Number(semesterTotals?.[3] || 0)}
-        {" / "}
-
-        {summary.reduce(
-          (total, department) =>
-            total +
-            getDepartmentStrength(
-              department.departmentCode,
-              3
-            ),
-          0
-        )}
-
-      </td>
-
-
-      {/* YEAR 3 TOTAL */}
-
-      <td className="px-4 py-2.5 text-center font-extrabold text-indigo-700">
-
-        {Number(semesterTotals?.[5] || 0)}
-        {" / "}
-
-        {summary.reduce(
-          (total, department) =>
-            total +
-            getDepartmentStrength(
-              department.departmentCode,
-              5
-            ),
-          0
-        )}
-
-      </td>
-
-
-      {/* GRAND TOTAL */}
-
-      <td className="px-4 py-2.5 text-center">
-
-        <span className="inline-flex min-w-[90px] justify-center rounded-md bg-green-100 px-3 py-1.5 text-base font-extrabold text-green-700">
-
-          {Number(grandTotal || 0)}
-          {" / "}
-
-          {summary.reduce(
-            (total, department) =>
-              total +
-              getDepartmentTotalStrength(
-                department.departmentCode
-              ),
-            0
-          )}
-
-        </span>
-
-      </td>
-
-    </tr>
-
-  </tbody>
-
-</table>
+              <table className="w-full min-w-[750px]">
+
+                <thead>
+
+                  <tr className="border-b bg-slate-50">
+
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      #
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Club
+                    </th>
+
+                    {visibleDepartments
+                      .filter(
+                        (department) =>
+                          clubTableDepartmentFilter ===
+                            "ALL" ||
+                          String(
+                            department._id
+                          ) ===
+                            String(
+                              clubTableDepartmentFilter
+                            )
+                      )
+                      .map((department) => (
+                        <th
+                          key={department._id}
+                          className="border-l border-slate-100 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-indigo-500"
+                        >
+                          {department.code ||
+                            department.departmentCode}
+                        </th>
+                      ))}
+
+                    <th className="border-l border-slate-100 bg-emerald-50 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                      Total
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {filteredClubs.map(
+                    (club, index) => (
+                      <tr
+                        key={club._id}
+                        className="border-b border-slate-100 hover:bg-slate-50"
+                      >
+
+                        <td className="px-4 py-3 text-sm text-slate-400">
+                          {index + 1}
+                        </td>
+
+                        <td className="px-4 py-3">
+
+                          <p className="font-bold text-slate-700">
+                            {club.name}
+                          </p>
+
+                          <p className="text-[11px] text-slate-400">
+                            {club.code}
+                          </p>
+
+                        </td>
+
+                        {visibleDepartments
+                          .filter(
+                            (department) =>
+                              clubTableDepartmentFilter ===
+                                "ALL" ||
+                              String(
+                                department._id
+                              ) ===
+                                String(
+                                  clubTableDepartmentFilter
+                                )
+                          )
+                          .map((department) => {
+
+                            const data =
+                              getClubDepartmentData(
+                                club,
+                                department
+                              );
+
+                            const count =
+                              clubTableSemesterFilter ===
+                              "ALL"
+                                ? data.total || 0
+                                : data.semesters?.[
+                                    clubTableSemesterFilter
+                                  ] || 0;
+
+                            return (
+                              <td
+                                key={`${club._id}-${department._id}`}
+                                className="border-l border-slate-100 px-4 py-3 text-center"
+                              >
+
+                                {Number(count) >
+                                0 ? (
+                                  <span className="inline-flex min-w-9 justify-center rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-700">
+                                    {count}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300">
+                                    —
+                                  </span>
+                                )}
+
+                              </td>
+                            );
+                          })}
+
+                        <td className="border-l border-slate-100 bg-emerald-50 px-4 py-3 text-center">
+
+                          <span className="font-extrabold text-emerald-700">
+
+                            {visibleDepartments
+                              .filter(
+                                (department) =>
+                                  clubTableDepartmentFilter ===
+                                    "ALL" ||
+                                  String(
+                                    department._id
+                                  ) ===
+                                    String(
+                                      clubTableDepartmentFilter
+                                    )
+                              )
+                              .reduce(
+                                (
+                                  total,
+                                  department
+                                ) => {
+
+                                  const data =
+                                    getClubDepartmentData(
+                                      club,
+                                      department
+                                    );
+
+                                  const count =
+                                    clubTableSemesterFilter ===
+                                    "ALL"
+                                      ? data.total ||
+                                        0
+                                      : data.semesters?.[
+                                          clubTableSemesterFilter
+                                        ] || 0;
+
+                                  return (
+                                    total +
+                                    Number(count)
+                                  );
+                                },
+                                0
+                              )}
+
+                          </span>
+
+                        </td>
+
+                      </tr>
+                    )
+                  )}
+
+                  {filteredClubs.length ===
+                    0 && (
+                    <tr>
+                      <td
+                        colSpan={
+                          visibleDepartments.filter(
+                            (department) =>
+                              clubTableDepartmentFilter ===
+                                "ALL" ||
+                              String(
+                                department._id
+                              ) ===
+                                String(
+                                  clubTableDepartmentFilter
+                                )
+                          ).length + 3
+                        }
+                        className="px-5 py-12 text-center"
+                      >
+
+                        <p className="text-sm font-bold text-slate-700">
+                          No clubs found
+                        </p>
+
+                      </td>
+                    </tr>
+                  )}
+
+                </tbody>
+
+              </table>
 
             </div>
 
           )}
 
-        </div>
-
-
-{/* =================================================
-    CLUB-WISE REGISTRATION TABLE
-================================================= */}
-
-{/* =================================================
-    CLUB-WISE REGISTRATION TABLE
-================================================= */}
-
-<div className="mt-5 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-
-  {/* HEADER + SEARCH */}
-
-  <div className="border-b px-5 py-3 sm:px-6">
-
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-      <div>
-
-        <h3 className="text-lg font-bold text-slate-800">
-          Club-wise Student Registration Details
-        </h3>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Club-wise registration count by department and semester.
-        </p>
+        </section>
 
       </div>
 
-
-      {/* CLUB TABLE FILTERS */}
-
-      <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-3">
-
-        {/* SEARCH */}
-
-        <div className="relative min-w-0 sm:w-56">
-
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            🔍
-          </span>
-
-          <input
-            type="text"
-            placeholder="Search club..."
-            value={clubSearch}
-            onChange={(e) => setClubSearch(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          />
-
-        </div>
-
-
-        {/* DEPARTMENT FILTER */}
-
-        <select
-          value={clubTableDepartmentFilter}
-          onChange={(e) =>
-            setClubTableDepartmentFilter(e.target.value)
-          }
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-        >
-
-          <option value="ALL">
-            All Departments
-          </option>
-
-          {departments.map((department) => (
-            <option
-              key={department._id}
-              value={department._id}
-            >
-              {department.code || department.name}
-            </option>
-          ))}
-
-        </select>
-
-
-        {/* SEMESTER FILTER */}
-
-        <select
-          value={clubTableSemesterFilter}
-          onChange={(e) =>
-            setClubTableSemesterFilter(e.target.value)
-          }
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-        >
-
-          <option value="ALL">
-            All Semesters
-          </option>
-
-          {[1, 2, 3, 4, 5, 6].map(
-            (semester) => (
-              <option
-                key={semester}
-                value={semester}
-              >
-                Semester {semester}
-              </option>
-            )
-          )}
-
-        </select>
-
-      </div>
-
-      {/* RESET CLUB TABLE FILTERS */}
-
-      {(clubSearch ||
-        clubTableDepartmentFilter !== "ALL" ||
-        clubTableSemesterFilter !== "ALL") && (
-
-        <button
-          type="button"
-          onClick={() => {
-            setClubSearch("");
-            setClubTableDepartmentFilter("ALL");
-            setClubTableSemesterFilter("ALL");
-          }}
-          className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-800 sm:mt-0"
-        >
-          Clear club filters
-        </button>
-
-      )}
-
-    </div>
-
-  </div>
-
-
-  {/* TABLE */}
-
-  {loading ? (
-
-    <div className="px-5 py-10 text-center">
-
-      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
-
-      <p className="mt-4 text-sm text-slate-500">
-        Loading registration details...
-      </p>
-
-    </div>
-
-  ) : (
-
-    <div className="overflow-x-auto">
-
-      <table className="w-full min-w-[750px]">
-
-        <thead>
-
-          <tr className="border-b bg-slate-50">
-
-            <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-              #
-            </th>
-
-            <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-              Club
-            </th>
-
-
-            {departments
-              .filter(
-                (department) =>
-                  clubTableDepartmentFilter === "ALL" ||
-                  String(department._id) ===
-                    String(clubTableDepartmentFilter)
-              )
-              .map((department) => (
-
-                <th
-                  key={department._id}
-                  className="border-l border-slate-200 px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-indigo-600"
-                >
-                  {department.code ||
-                    department.departmentCode}
-                </th>
-
-              ))}
-
-
-            <th className="border-l border-slate-200 bg-green-50 px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-green-700">
-              Total
-            </th>
-
-          </tr>
-
-        </thead>
-
-
-        <tbody>
-
-          {filteredClubs.map((club, index) => (
-
-              <tr
-                key={club._id}
-                className="border-b border-slate-100 hover:bg-slate-50"
-              >
-
-                {/* S.NO */}
-
-                <td className="px-4 py-2.5 text-sm text-slate-500">
-                  {index + 1}
-                </td>
-
-
-                {/* CLUB */}
-
-                <td className="px-4 py-2.5">
-
-                  <p className="font-bold text-slate-800">
-                    {club.name}
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    {club.code}
-                  </p>
-
-                </td>
-
-
-                {/* DEPARTMENT COUNTS */}
-
-                {departments
-                  .filter(
-                    (department) =>
-                      clubTableDepartmentFilter === "ALL" ||
-                      String(department._id) ===
-                        String(clubTableDepartmentFilter)
-                  )
-                  .map((department) => {
-
-                    const departmentData =
-                      getClubDepartmentData(
-                        club,
-                        department
-                      );
-
-                    const count =
-                      clubTableSemesterFilter === "ALL"
-                        ? departmentData.total || 0
-                        : departmentData.semesters?.[
-                            clubTableSemesterFilter
-                          ] || 0;
-
-                    return (
-
-                      <td
-                        key={`${club._id}-${department._id}`}
-                        className="border-l border-slate-100 px-4 py-2.5 text-center"
-                      >
-
-                        <span
-                          className={`inline-flex min-w-10 justify-center rounded-lg px-3 py-2 text-sm font-bold ${
-                            count > 0
-                              ? "bg-indigo-50 text-indigo-700"
-                              : "text-slate-300"
-                          }`}
-                        >
-                          {count}
-                        </span>
-
-                      </td>
-
-                    );
-
-                  })}
-
-
-                {/* CLUB TOTAL */}
-
-                <td className="border-l border-slate-200 bg-green-50 px-4 py-2.5 text-center">
-
-                  <span className="inline-flex rounded-lg bg-green-100 px-4 py-2 font-extrabold text-green-700">
-
-                    {departments
-                      .filter(
-                        (department) =>
-                          clubTableDepartmentFilter === "ALL" ||
-                          String(department._id) ===
-                            String(clubTableDepartmentFilter)
-                      )
-                      .reduce(
-                        (total, department) => {
-
-                          const departmentData =
-                            getClubDepartmentData(
-                              club,
-                              department
-                            );
-
-                          const count =
-                            clubTableSemesterFilter === "ALL"
-                              ? departmentData.total || 0
-                              : departmentData.semesters?.[
-                                  clubTableSemesterFilter
-                                ] || 0;
-
-                          return (
-                            total + Number(count)
-                          );
-
-                        },
-                        0
-                      )}
-
-                  </span>
-
-                </td>
-
-              </tr>
-
-            ))}
-
-
-          {/* NO SEARCH RESULT */}
-
-          {filteredClubs.length === 0 && (
-
-            <tr>
-
-              <td
-                colSpan={
-                  departments.filter(
-                    (department) =>
-                      clubTableDepartmentFilter === "ALL" ||
-                      String(department._id) ===
-                        String(clubTableDepartmentFilter)
-                  ).length + 3
-                }
-                className="px-5 py-9 text-center"
-              >
-
-                <div className="text-3xl">
-                  🔍
-                </div>
-
-                <p className="mt-3 font-semibold text-slate-700">
-                  No club found
-                </p>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Try searching with another club name or code.
-                </p>
-
-              </td>
-
-            </tr>
-
-          )}
-
-
-          {/* GRAND TOTAL */}
-
-          <tr className="bg-indigo-50">
-
-            <td
-              colSpan="2"
-              className="px-4 py-2.5 font-extrabold text-indigo-800"
-            >
-              GRAND TOTAL
-            </td>
-
-
-            {departments
-              .filter(
-                (department) =>
-                  clubTableDepartmentFilter === "ALL" ||
-                  String(department._id) ===
-                    String(clubTableDepartmentFilter)
-              )
-              .map((department) => {
-
-                let total = 0;
-
-                filteredClubs.forEach((club) => {
-
-                  const departmentData =
-                    getClubDepartmentData(
-                      club,
-                      department
-                    );
-
-                  const count =
-                    clubTableSemesterFilter === "ALL"
-                      ? departmentData.total || 0
-                      : departmentData.semesters?.[
-                          clubTableSemesterFilter
-                        ] || 0;
-
-                  total += Number(count);
-
-                });
-
-                return (
-
-                  <td
-                    key={`total-${department._id}`}
-                    className="border-l border-slate-200 px-4 py-2.5 text-center font-extrabold text-indigo-700"
-                  >
-                    {total}
-                  </td>
-
-                );
-
-              })}
-
-
-            <td className="border-l border-slate-200 bg-green-50 px-4 py-2.5 text-center text-lg font-extrabold text-green-700">
-              {filteredClubs.reduce(
-                (grand, club) =>
-                  grand +
-                  departments
-                    .filter(
-                      (department) =>
-                        clubTableDepartmentFilter === "ALL" ||
-                        String(department._id) ===
-                          String(clubTableDepartmentFilter)
-                    )
-                    .reduce(
-                      (total, department) => {
-
-                        const departmentData =
-                          getClubDepartmentData(
-                            club,
-                            department
-                          );
-
-                        const count =
-                          clubTableSemesterFilter === "ALL"
-                            ? departmentData.total || 0
-                            : departmentData.semesters?.[
-                                clubTableSemesterFilter
-                              ] || 0;
-
-                        return total + Number(count);
-
-                      },
-                      0
-                    ),
-                0
-              )}
-            </td>
-
-          </tr>
-
-        </tbody>
-
-      </table>
-
-    </div>
-
-  )}
-
-</div>
-
-
-        {/* =================================================
-            REGISTER BUTTON
-        ================================================= */}
-
-        <div className="mt-5 rounded-2xl bg-gradient-to-r from-red-600 to-orange-500 p-6 text-center shadow-lg sm:p-8">
-
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-100">
-            Student Registration
-          </p>
-
-          <h3 className="mt-2 text-2xl font-extrabold text-white">
-            Have you completed club registration?
-          </h3>
-
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-orange-50">
-            Club registration is compulsory for all students.
-          </p>
-
-          <a
-            href="/register"
-            className="mt-5 inline-flex rounded-xl bg-white px-7 py-3 text-sm font-extrabold text-red-600 shadow-md transition hover:bg-orange-50"
-          >
-            Register Now →
-          </a>
-
-        </div>
-
-      </div>
-
-
-      {/* =================================================
+      {/* =====================================================
           FOOTER
-      ================================================= */}
+      ===================================================== */}
 
-      <footer className="border-t bg-white">
+      <footer className="border-t border-slate-200 bg-white py-5">
 
-        <div className="mx-auto max-w-7xl px-5 py-4 text-center text-sm text-slate-500">
-          KPT Club Management System
-        </div>
+        <p className="text-center text-xs text-slate-400">
+          Karnataka Government Polytechnic, Mangaluru
+        </p>
 
       </footer>
 
     </main>
+  );
+}
+
+/* =========================================================
+   REGISTRATION CELL
+========================================================= */
+
+function RegistrationCell({
+  registered,
+  strength,
+}) {
+  const percentage =
+    strength > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (registered / strength) * 100
+          )
+        )
+      : 0;
+
+  return (
+    <td className="px-4 py-3 text-center">
+
+      <span
+        className={`inline-flex min-w-[72px] justify-center rounded-lg px-2.5 py-1.5 text-sm font-bold ${
+          registered > 0
+            ? "bg-indigo-50 text-indigo-700"
+            : "bg-slate-50 text-slate-400"
+        }`}
+      >
+        {registered} / {strength}
+      </span>
+
+      <div className="mx-auto mt-1.5 h-1 w-14 overflow-hidden rounded-full bg-slate-100">
+
+        <div
+          className="h-full rounded-full bg-indigo-500"
+          style={{
+            width: `${percentage}%`,
+          }}
+        />
+
+      </div>
+
+    </td>
+  );
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+function Loading() {
+  return (
+    <div className="px-5 py-12 text-center">
+
+      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
+
+      <p className="mt-3 text-sm text-slate-500">
+        Loading...
+      </p>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+function EmptyState() {
+  return (
+    <div className="px-5 py-12 text-center">
+
+      <p className="text-sm font-semibold text-slate-600">
+        No registration data found
+      </p>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+function ErrorState({
+  error,
+  onRetry,
+}) {
+  return (
+    <div className="px-5 py-12 text-center">
+
+      <p className="text-sm font-semibold text-red-600">
+        {error}
+      </p>
+
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700"
+      >
+        Try Again
+      </button>
+
+    </div>
   );
 }
