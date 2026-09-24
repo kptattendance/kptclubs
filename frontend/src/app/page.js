@@ -7,10 +7,10 @@ import api from "@/lib/api";
    COLLEGE IMAGES
 ========================================================= */
 
-const LOGO_LEFT = "/logo.png";
+const LOGO_LEFT = "/logo.jpg";
 const LOGO_CENTER = "/logo3.png";
 const LOGO_RIGHT = "/logo2.png";
-const COLLEGE_PHOTO = "/college-photo.jpg";
+const COLLEGE_PHOTO = "/kpt-bg.jpg";
 
 /* =========================================================
    MANUAL STUDENT STRENGTH
