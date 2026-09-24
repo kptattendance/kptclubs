@@ -402,12 +402,16 @@ export const getClubAttendanceDetails = async (req, res) => {
 };
 
 /* =========================================================
-   GET STUDENT CONSOLIDATED ATTENDANCE
+   GET STUDENT DETAILED ATTENDANCE
+   Student can view ONLY their own attendance
    ========================================================= */
 
 export const getStudentAttendance = async (req, res) => {
   try {
-    // req.userId is MongoDB User _id
+    // -----------------------------------------------------
+    // CHECK LOGGED-IN USER
+    // -----------------------------------------------------
+
     if (!req.userId) {
       return res.status(401).json({
         success: false,
@@ -415,7 +419,10 @@ export const getStudentAttendance = async (req, res) => {
       });
     }
 
-    // Find the StudentProfile belonging to this user
+    // -----------------------------------------------------
+    // FIND STUDENT PROFILE
+    // -----------------------------------------------------
+
     const student = await StudentProfile.findOne({
       userId: req.userId,
     });
@@ -427,9 +434,9 @@ export const getStudentAttendance = async (req, res) => {
       });
     }
 
-    /* -----------------------------------------------------
-       Get all attendance records for this student
-       ----------------------------------------------------- */
+    // -----------------------------------------------------
+    // GET ALL ATTENDANCE RECORDS FOR THIS STUDENT
+    // -----------------------------------------------------
 
     const records = await Attendance.find({
       studentId: student._id,
@@ -442,19 +449,20 @@ export const getStudentAttendance = async (req, res) => {
         attendanceDate: 1,
       });
 
-    /* -----------------------------------------------------
-       Group attendance club-wise
-       ----------------------------------------------------- */
+    // -----------------------------------------------------
+    // GROUP ATTENDANCE CLUB-WISE
+    // -----------------------------------------------------
 
     const clubMap = new Map();
 
     records.forEach((record) => {
-      if (!record.clubId) {
+      if (!record.clubId || !record.attendanceDate) {
         return;
       }
 
       const clubId = record.clubId._id.toString();
 
+      // Create club entry
       if (!clubMap.has(clubId)) {
         clubMap.set(clubId, {
           clubId: record.clubId._id,
@@ -463,57 +471,125 @@ export const getStudentAttendance = async (req, res) => {
 
           attendedClasses: 0,
           totalClasses: 0,
+          absentClasses: 0,
+
+          percentage: 0,
+
+          attendanceHistory: [],
         });
       }
 
       const club = clubMap.get(clubId);
+
+      // ---------------------------------------------------
+      // DATE
+      // ---------------------------------------------------
+
+      const dateObject = new Date(record.attendanceDate);
+
+      const date = dateObject
+        .toISOString()
+        .split("T")[0];
+
+      const day = dateObject.toLocaleDateString(
+        "en-IN",
+        {
+          weekday: "long",
+          timeZone: "UTC",
+        }
+      );
+
+      // ---------------------------------------------------
+      // ATTENDANCE COUNT
+      // ---------------------------------------------------
 
       club.totalClasses += 1;
 
       if (record.status === "PRESENT") {
         club.attendedClasses += 1;
       }
+
+      if (record.status === "ABSENT") {
+        club.absentClasses += 1;
+      }
+
+      // ---------------------------------------------------
+      // DATE-WISE ATTENDANCE
+      // ---------------------------------------------------
+
+      club.attendanceHistory.push({
+        date,
+        day,
+        status: record.status,
+        markedAt: record.markedAt || null,
+        submittedAt: record.submittedAt || null,
+      });
     });
 
-    /* -----------------------------------------------------
-       Calculate percentage
-       ----------------------------------------------------- */
+    // -----------------------------------------------------
+    // CALCULATE PERCENTAGE
+    // -----------------------------------------------------
 
-    const attendance = Array.from(clubMap.values()).map(
-      (club) => ({
-        ...club,
-
-        percentage:
-          club.totalClasses > 0
-            ? Math.round(
+    const attendance = Array.from(
+      clubMap.values()
+    ).map((club) => {
+      club.percentage =
+        club.totalClasses > 0
+          ? Number(
+              (
                 (club.attendedClasses /
                   club.totalClasses) *
-                  100
-              )
-            : 0,
-      })
-    );
+                100
+              ).toFixed(2)
+            )
+          : 0;
 
-    /* -----------------------------------------------------
-       Overall attendance
-       ----------------------------------------------------- */
+      // Make sure history is sorted by date
+      club.attendanceHistory.sort(
+        (a, b) =>
+          new Date(a.date) -
+          new Date(b.date)
+      );
+
+      return club;
+    });
+
+    // -----------------------------------------------------
+    // OVERALL ATTENDANCE
+    // -----------------------------------------------------
 
     const totalClasses = attendance.reduce(
-      (sum, club) => sum + club.totalClasses,
+      (sum, club) =>
+        sum + Number(club.totalClasses || 0),
       0
     );
 
     const attendedClasses = attendance.reduce(
-      (sum, club) => sum + club.attendedClasses,
+      (sum, club) =>
+        sum + Number(club.attendedClasses || 0),
+      0
+    );
+
+    const absentClasses = attendance.reduce(
+      (sum, club) =>
+        sum + Number(club.absentClasses || 0),
       0
     );
 
     const overallPercentage =
       totalClasses > 0
-        ? Math.round(
-            (attendedClasses / totalClasses) * 100
+        ? Number(
+            (
+              (attendedClasses /
+                totalClasses) *
+              100
+            ).toFixed(2)
           )
         : 0;
+
+    // -----------------------------------------------------
+    // RESPONSE
+    // -----------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -522,13 +598,14 @@ export const getStudentAttendance = async (req, res) => {
 
       overall: {
         attendedClasses,
+        absentClasses,
         totalClasses,
         percentage: overallPercentage,
       },
     });
   } catch (error) {
     console.error(
-      "Get student attendance error:",
+      "Get student detailed attendance error:",
       error
     );
 

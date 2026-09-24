@@ -5,7 +5,39 @@ import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
 import Swal from "sweetalert2";
+
+// =====================================================
+// CLUB MEMBERSHIP STATUS
+// =====================================================
+
+function getStudentStatus(student) {
+  const status = student?.clubStatus;
+
+  if (!student?.club || !status) {
+    return "NO_CLUB";
+  }
+
+  switch (status) {
+    case "CONFIRMED":
+      return "APPROVED";
+
+    case "PENDING_CLUB_APPROVAL":
+    case "PENDING_HOD_APPROVAL":
+      return "PENDING";
+
+    case "REJECTED_BY_CLUB":
+    case "REJECTED_BY_HOD":
+      return "REJECTED";
+
+   
+
+    default:
+      return "NO_CLUB";
+  }
+}
+
 export default function HODStudentsPage() {
+
   const { getToken, isLoaded } = useAuth();
 
   const [students, setStudents] = useState([]);
@@ -16,6 +48,7 @@ export default function HODStudentsPage() {
   const [search, setSearch] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("ALL");
   const [clubFilter, setClubFilter] = useState("ALL");
+const [statusFilter, setStatusFilter] = useState("ALL");
 
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -139,6 +172,12 @@ export default function HODStudentsPage() {
         );
       }
     }
+    if (statusFilter !== "ALL") {
+  result = result.filter(
+    (student) =>
+      getStudentStatus(student) === statusFilter
+  );
+}
 
     if (search.trim()) {
       const value =
@@ -211,12 +250,13 @@ export default function HODStudentsPage() {
 
     return result;
   }, [
-    students,
-    search,
-    semesterFilter,
-    clubFilter,
-    sortBy,
-    sortOrder,
+  students,
+  search,
+  semesterFilter,
+  clubFilter,
+  statusFilter,
+  sortBy,
+  sortOrder,
   ]);
 
   // =====================================================
@@ -463,6 +503,8 @@ const deleteStudent = async (student) => {
     setDeletingId(null);
   }
 };
+
+
   // =====================================================
   // EXCEL DOWNLOAD
   // =====================================================
@@ -497,6 +539,14 @@ const deleteStudent = async (student) => {
 
             "Club Code":
               student.club?.code || "",
+              Status:
+  getStudentStatus(student) === "APPROVED"
+    ? "APPROVED"
+    : getStudentStatus(student) === "PENDING"
+    ? "PENDING"
+    : getStudentStatus(student) === "REJECTED"
+    ? "REJECTED"
+    : "NO CLUB",
           })
         );
 
@@ -667,8 +717,7 @@ const deleteStudent = async (student) => {
               {filteredStudents.length} Students
             </div>
           </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
 
             {/* SEARCH */}
             <div className="xl:col-span-2">
@@ -758,6 +807,41 @@ const deleteStudent = async (student) => {
                 ))}
               </select>
             </div>
+
+
+{/* STATUS */}
+<div>
+  <label className="mb-1 block text-xs font-semibold text-gray-600">
+    Status
+  </label>
+
+  <select
+    value={statusFilter}
+    onChange={(e) =>
+      setStatusFilter(e.target.value)
+    }
+    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+  >
+    <option value="ALL">
+      All Status
+    </option>
+
+   
+
+    <option value="APPROVED">
+      Approved
+    </option>
+     <option value="PENDING">
+      Pending
+    </option>
+
+    <option value="REJECTED">
+      Rejected
+    </option>
+
+    
+  </select>
+</div>
 
             {/* SORT */}
             <div>
@@ -863,8 +947,7 @@ const deleteStudent = async (student) => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-
-              <table className="w-full min-w-[1000px] text-sm">
+<table className="w-full min-w-[1120px] text-sm">
 
                 {/* HEADER */}
                 <thead className="border-b border-gray-200 bg-gray-50">
@@ -890,6 +973,9 @@ const deleteStudent = async (student) => {
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
                       Club
                     </th>
+                    <th className="w-32 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-gray-500">
+  Status
+</th>
 
                     <th className="w-44 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-gray-500">
                       Actions
@@ -903,20 +989,23 @@ const deleteStudent = async (student) => {
                 <tbody className="divide-y divide-gray-100">
 
                   {filteredStudents.map(
-                    (student, index) => {
-                      const isEditing =
-                        String(editingId) ===
-                        String(student._id);
+  (student, index) => {
+    const isEditing =
+      String(editingId) ===
+      String(student._id);
 
-                      const isSaving =
-                        String(savingId) ===
-                        String(student._id);
+    const isSaving =
+      String(savingId) ===
+      String(student._id);
 
-                      const isDeleting =
-                        String(deletingId) ===
-                        String(student._id);
+    const isDeleting =
+      String(deletingId) ===
+      String(student._id);
 
-                      return (
+    const studentStatus =
+      getStudentStatus(student);
+
+    return (
                         <tr
                           key={student._id}
                           className={`transition ${
@@ -1071,7 +1160,46 @@ const deleteStudent = async (student) => {
                               </span>
                             )}
 
-                          </td>
+                                                </td>
+
+                       {/* STATUS */}
+<td className="px-4 py-4 text-center">
+
+  {studentStatus === "APPROVED" && (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+      Approved
+    </span>
+  )}
+
+  {studentStatus === "PENDING" && (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+      Pending
+    </span>
+  )}
+
+  {studentStatus === "REJECTED" && (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+      Rejected
+    </span>
+  )}
+
+  {studentStatus === "CANCELLED" && (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-600">
+      <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+      Cancelled
+    </span>
+  )}
+
+  {studentStatus === "NO_CLUB" && (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-500">
+      No Club
+    </span>
+  )}
+
+</td>
 
                           {/* ACTIONS */}
                           <td className="px-4 py-4">
