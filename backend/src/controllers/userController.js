@@ -959,20 +959,24 @@ export const updateUserStatus = async (
 
 
 // ============================================================
-// DELETE USER
-// ============================================================
-
-// ============================================================
-// DELETE USER
+// DELETE USER - COMPLETE CLEANUP
 // ============================================================
 
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // --------------------------------------------------------
+    console.log("");
+    console.log("================================================");
+    console.log("DELETE USER STARTED");
+    console.log("================================================");
+    console.log("Requested Mongo User ID:", id);
+    console.log("Requester Clerk ID:", req.clerkUserId);
+    console.log("Requester Mongo User ID:", req.userId);
+
+    // ========================================================
     // FIND USER
-    // --------------------------------------------------------
+    // ========================================================
 
     const user = await User.findById(id);
 
@@ -983,134 +987,439 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------------
-    // PREVENT ADMIN FROM DELETING HIMSELF
-    // --------------------------------------------------------
+    console.log("User found:", {
+      mongoUserId: user._id.toString(),
+      clerkUserId: user.clerkUserId,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      userType: user.userType,
+    });
 
-    if (req.userId?.toString() === user._id.toString()) {
+    // ========================================================
+    // PREVENT SELF DELETE
+    // ========================================================
+
+    if (
+      req.userId &&
+      req.userId.toString() === user._id.toString()
+    ) {
       return res.status(400).json({
         success: false,
         message: "You cannot delete your own account",
       });
     }
 
-    // --------------------------------------------------------
-    // IF STUDENT, DELETE STUDENT-RELATED DATA
-    // --------------------------------------------------------
+    // ========================================================
+    // SAVE IMPORTANT VALUES BEFORE DELETION
+    // ========================================================
 
-    if (user.role === "STUDENT") {
-      const studentProfile = await StudentProfile.findOne({
-        userId: user._id,
-      });
+    const mongoUserId = user._id;
+    const clerkUserId = user.clerkUserId;
+    const userRole = user.role;
+
+    // ========================================================
+    // HELPER - DELETE CLOUDINARY FILE FROM URL
+    // ========================================================
+
+    const deleteCloudinaryFromUrl = async (
+      fileUrl,
+      label
+    ) => {
+      if (!fileUrl) {
+        return;
+      }
+
+      // Only process Cloudinary URLs
+      if (
+        typeof fileUrl !== "string" ||
+        !fileUrl.includes("res.cloudinary.com")
+      ) {
+        console.log(
+          `Skipping ${label}: not a Cloudinary URL`
+        );
+
+        return;
+      }
+
+      try {
+        const publicId =
+          getCloudinaryPublicId(fileUrl);
+
+        if (!publicId) {
+          console.log(
+            `Could not extract Cloudinary public ID for ${label}`
+          );
+
+          return;
+        }
+
+        console.log(
+          `Deleting Cloudinary ${label}:`,
+          publicId
+        );
+
+        const result =
+          await cloudinary.uploader.destroy(
+            publicId,
+            {
+              resource_type: "image",
+            }
+          );
+
+        console.log(
+          `Cloudinary ${label} deletion result:`,
+          result
+        );
+
+      } catch (cloudinaryError) {
+        console.error(
+          `Cloudinary ${label} deletion failed:`,
+          cloudinaryError?.message ||
+            cloudinaryError
+        );
+
+        // Do not stop complete user deletion
+      }
+    };
+
+    // ========================================================
+    // STUDENT DATA
+    // ========================================================
+
+    if (userRole === "STUDENT") {
+
+      console.log(
+        "Student account detected."
+      );
+
+      // ======================================================
+      // FIND STUDENT PROFILE
+      // ======================================================
+
+      const studentProfile =
+        await StudentProfile.findOne({
+          userId: mongoUserId,
+        });
 
       if (studentProfile) {
-        const studentId = studentProfile._id;
 
-        // Delete attendance records
-        await Attendance.deleteMany({
-          studentId,
+        const studentId =
+          studentProfile._id;
+
+        console.log(
+          "StudentProfile found:",
+          studentId.toString()
+        );
+
+        // ====================================================
+        // SAVE STUDENT PHOTO URL
+        // ====================================================
+
+        const studentPhotoUrl =
+          studentProfile.photoUrl;
+
+        // ====================================================
+        // FIND CERTIFICATES BEFORE DELETING THEM
+        // ====================================================
+
+        const certificates =
+          await Certificate.find({
+            studentId,
+          }).select(
+            "_id certificateUrl"
+          );
+
+        console.log(
+          "Certificates found:",
+          certificates.length
+        );
+
+        // ====================================================
+        // DELETE CERTIFICATE FILES FROM CLOUDINARY
+        // ====================================================
+
+        for (
+          const certificate of certificates
+        ) {
+          if (
+            certificate.certificateUrl
+          ) {
+            await deleteCloudinaryFromUrl(
+              certificate.certificateUrl,
+              `certificate ${certificate._id}`
+            );
+          }
+        }
+
+        // ====================================================
+        // DELETE CERTIFICATE RECORDS
+        // ====================================================
+
+        const certificateResult =
+          await Certificate.deleteMany({
+            studentId,
+          });
+
+        console.log(
+          "Certificate records deleted:",
+          certificateResult.deletedCount
+        );
+
+        // ====================================================
+        // DELETE ATTENDANCE
+        // ====================================================
+
+        const attendanceResult =
+          await Attendance.deleteMany({
+            studentId,
+          });
+
+        console.log(
+          "Attendance records deleted:",
+          attendanceResult.deletedCount
+        );
+
+        // ====================================================
+        // DELETE CLUB MEMBERSHIPS
+        // ====================================================
+
+        const membershipResult =
+          await ClubMembership.deleteMany({
+            studentId,
+          });
+
+        console.log(
+          "Club membership records deleted:",
+          membershipResult.deletedCount
+        );
+
+        // ====================================================
+        // DELETE STUDENT PHOTO FROM CLOUDINARY
+        // ====================================================
+
+        await deleteCloudinaryFromUrl(
+          studentPhotoUrl,
+          "student profile photo"
+        );
+
+        // ====================================================
+        // DELETE STUDENT PROFILE
+        // ====================================================
+
+        await StudentProfile.deleteOne({
+          _id: studentId,
         });
 
-        // Delete certificate records
-        await Certificate.deleteMany({
-          studentId,
-        });
+        console.log(
+          "StudentProfile deleted:",
+          studentId.toString()
+        );
 
-        // Delete club memberships
-        await ClubMembership.deleteMany({
-          studentId,
-        });
+      } else {
 
-        // Delete student profile
-        await StudentProfile.findByIdAndDelete(
-          studentId
+        console.log(
+          "No StudentProfile found for Mongo User:",
+          mongoUserId.toString()
         );
       }
     }
 
-    // --------------------------------------------------------
-    // DELETE CLOUDINARY PHOTO
-    // --------------------------------------------------------
+    // ========================================================
+    // DELETE USER PROFILE PHOTO
+    // ========================================================
 
-    if (user.photoPublicId) {
-      try {
-        await cloudinary.uploader.destroy(
-          user.photoPublicId
-        );
-      } catch (error) {
-        console.error(
-          "Cloudinary deletion failed:",
-          error
-        );
+    // Your User model uses profilePhoto,
+    // NOT photoPublicId.
 
-        // Continue with database deletion
-      }
+    if (user.profilePhoto) {
+
+      await deleteCloudinaryFromUrl(
+        user.profilePhoto,
+        "user profile photo"
+      );
     }
 
-    // --------------------------------------------------------
+    // ========================================================
     // DELETE CLERK USER
-    // --------------------------------------------------------
-if (user.clerkUserId) {
-  try {
-    await clerkClient.users.deleteUser(
-      user.clerkUserId
-    );
+    // ========================================================
 
-    console.log(
-      "Clerk user deleted:",
-      user.clerkUserId
-    );
+    if (clerkUserId) {
 
-  } catch (error) {
+      try {
 
-    if (error?.status === 404) {
-      console.log(
-        "Clerk user already does not exist:",
-        user.clerkUserId
-      );
+        console.log(
+          "Deleting Clerk user:",
+          clerkUserId
+        );
+
+        await clerkClient.users.deleteUser(
+          clerkUserId
+        );
+
+        console.log(
+          "Clerk user deleted successfully:",
+          clerkUserId
+        );
+
+      } catch (clerkError) {
+
+        console.error("");
+        console.error(
+          "❌ CLERK USER DELETION FAILED"
+        );
+
+        console.error(
+          "Clerk User ID:",
+          clerkUserId
+        );
+
+        console.error(
+          "Status:",
+          clerkError?.status
+        );
+
+        console.error(
+          "Message:",
+          clerkError?.message
+        );
+
+        console.error(
+          "Errors:",
+          clerkError?.errors
+        );
+
+        // If Clerk user is already deleted,
+        // continue with MongoDB cleanup.
+
+        if (
+          clerkError?.status === 404 ||
+          clerkError?.statusCode === 404
+        ) {
+
+          console.log(
+            "Clerk user already does not exist. Continuing."
+          );
+
+        } else {
+
+          return res.status(500).json({
+            success: false,
+            message:
+              "Failed to delete user from Clerk",
+
+            error:
+              clerkError?.message ||
+              "Unknown Clerk error",
+          });
+        }
+      }
+
     } else {
-      console.error(
-        "Clerk deletion failed:",
-        error
+
+      console.log(
+        "WARNING: User has no clerkUserId"
       );
+    }
+
+    // ========================================================
+    // DELETE MONGO USER
+    // ========================================================
+
+    const deletedUser =
+      await User.findByIdAndDelete(
+        mongoUserId
+      );
+
+    if (!deletedUser) {
 
       return res.status(500).json({
         success: false,
         message:
-          "Failed to delete user from Clerk",
+          "Clerk account was processed, but MongoDB user could not be deleted",
       });
     }
-  }
-}
 
-    // --------------------------------------------------------
-    // DELETE MONGODB USER
-    // --------------------------------------------------------
+    console.log(
+      "Mongo User deleted:",
+      mongoUserId.toString()
+    );
 
-    await User.findByIdAndDelete(id);
+    // ========================================================
+    // FINAL RESPONSE
+    // ========================================================
 
-    // --------------------------------------------------------
-    // SUCCESS
-    // --------------------------------------------------------
+    console.log("");
+    console.log(
+      "================================================"
+    );
+    console.log(
+      "✅ COMPLETE USER DELETION FINISHED"
+    );
+    console.log(
+      "================================================"
+    );
 
     return res.status(200).json({
+
       success: true,
+
       message:
-        user.role === "STUDENT"
+        userRole === "STUDENT"
           ? "Student and all related data deleted successfully"
-          : "User deleted successfully",
+          : "User and related account data deleted successfully",
+
+      deletedUser: {
+        mongoUserId:
+          mongoUserId.toString(),
+
+        clerkUserId:
+          clerkUserId || null,
+
+        email:
+          user.email || null,
+
+        role:
+          userRole || null,
+      },
+
     });
 
   } catch (error) {
+
+    console.error("");
     console.error(
-      "Delete user error:",
+      "================================================"
+    );
+
+    console.error(
+      "❌ COMPLETE USER DELETE ERROR"
+    );
+
+    console.error(
+      "================================================"
+    );
+
+    console.error(
+      "Message:",
+      error?.message
+    );
+
+    console.error(
+      "Stack:",
+      error?.stack
+    );
+
+    console.error(
+      "Full error:",
       error
     );
 
     return res.status(500).json({
       success: false,
       message:
-        "Failed to delete user",
+        error?.message ||
+        "Failed to completely delete user",
     });
   }
 };
