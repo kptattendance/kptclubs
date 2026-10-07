@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { useState } from "react";
+import RoleProtected from "../components/RoleProtected";
 
 export default function HODLayout({ children }) {
   const pathname = usePathname();
