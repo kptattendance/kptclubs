@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import RoleProtected from "../components/RoleProtected";
 
 export default function StudentLayout({ children }) {
   const pathname = usePathname();
