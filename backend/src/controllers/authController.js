@@ -5,13 +5,10 @@ import User from "../models/User.js";
 export const authenticateUser = async (req, res) => {
   try {
 
-    console.log("========== AUTH ME ==========");
 
     // Get authenticated Clerk session
     const { isAuthenticated, userId } = getAuth(req);
 
-    console.log("Authenticated:", isAuthenticated);
-    console.log("Clerk User ID:", userId);
 
     if (!isAuthenticated || !userId) {
       return res.status(401).json({
@@ -72,9 +69,7 @@ export const authenticateUser = async (req, res) => {
 
         await user.save();
 
-        console.log(
-          `Linked existing user with Clerk: ${email}`
-        );
+       
       }
     }
 
@@ -92,9 +87,7 @@ export const authenticateUser = async (req, res) => {
         role: "STUDENT",
       });
 
-      console.log(
-        `New student created: ${email}`
-      );
+     
     }
 
     // ============================================

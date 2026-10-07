@@ -165,12 +165,14 @@ export default function HODLayout({ children }) {
           />
 
         </header>
+    <RoleProtected allowedRoles={["HOD"]}>
 
         {/* PAGE */}
         <div className="p-4 sm:p-6 md:p-8">
           {children}
         </div>
 
+    </RoleProtected>
       </main>
     </div>
   );

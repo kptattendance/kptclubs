@@ -17,7 +17,6 @@ DELETE /api/club-incharge/:clubCode/students/:studentId
 export const deleteClubStudent = async (req, res) => {
   try {
 
-    console.log("========== DELETE CLUB STUDENT ==========");
 
     const { clubCode, studentId } = req.params;
 
@@ -156,7 +155,6 @@ export const deleteClubStudent = async (req, res) => {
       studentId: studentProfile._id,
     });
 
-    console.log("Attendance deleted");
 
     // =================================================
     // 11. DELETE ALL CERTIFICATES
@@ -166,7 +164,6 @@ export const deleteClubStudent = async (req, res) => {
       studentId: studentProfile._id,
     });
 
-    console.log("Certificates deleted");
 
     // =================================================
     // 12. DELETE ALL CLUB MEMBERSHIPS
@@ -176,7 +173,6 @@ export const deleteClubStudent = async (req, res) => {
       studentId: studentProfile._id,
     });
 
-    console.log("Club memberships deleted");
 
     // =================================================
     // 13. DELETE STUDENT PROFILE
@@ -186,7 +182,6 @@ export const deleteClubStudent = async (req, res) => {
       studentProfile._id
     );
 
-    console.log("Student profile deleted");
 
     // =================================================
     // 14. DELETE CLOUDINARY PHOTO
@@ -200,9 +195,7 @@ export const deleteClubStudent = async (req, res) => {
           studentUser.photoPublicId
         );
 
-        console.log(
-          "Cloudinary photo deleted"
-        );
+        
 
       } catch (error) {
 
@@ -227,10 +220,7 @@ export const deleteClubStudent = async (req, res) => {
           studentUser.clerkUserId
         );
 
-        console.log(
-          "Clerk user deleted:",
-          studentUser.clerkUserId
-        );
+      
 
       } catch (error) {
 
@@ -239,10 +229,7 @@ export const deleteClubStudent = async (req, res) => {
 
         if (error?.status === 404) {
 
-          console.log(
-            "Clerk user already does not exist:",
-            studentUser.clerkUserId
-          );
+       
 
         } else {
 
@@ -268,7 +255,6 @@ export const deleteClubStudent = async (req, res) => {
       studentUser._id
     );
 
-    console.log("Mongo user deleted");
 
     // =================================================
     // SUCCESS
@@ -316,7 +302,6 @@ Pending student applications
 
 export const getClubApplications = async (req, res) => {
   try {
-    console.log("========== CLUB APPLICATIONS ==========");
 
     // =================================================
     // 1. GET CLERK USER ID
@@ -324,7 +309,6 @@ export const getClubApplications = async (req, res) => {
 
     const clerkUserId = req.clerkUserId;
 
-    console.log("Clerk User ID:", clerkUserId);
 
     if (!clerkUserId) {
       return res.status(401).json({
@@ -347,11 +331,6 @@ export const getClubApplications = async (req, res) => {
         message: "Application user not found",
       });
     }
-
-    console.log("Mongo User ID:", user._id);
-    console.log("Role:", user.role);
-    console.log("Mongo Club ID:", user.clubId);
-
     // =================================================
     // 3. CHECK ROLE
     // =================================================
@@ -549,9 +528,7 @@ export const approveClubApplication = async (
 ) => {
   try {
 
-    console.log(
-      "========== APPROVE CLUB APPLICATION =========="
-    );
+  
 
     const clerkUserId =
       req.clerkUserId;

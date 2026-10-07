@@ -7,10 +7,12 @@ import {
   getConsolidatedAttendance,
   getStudentAttendance,
   getClubAttendanceDetails,
+  getAdminAttendanceStatus,
 } from "../controllers/attendanceController.js";
 
 import requireAuth from "../middleware/authMiddleware.js";
 import resolveUser from "../middleware/resolveUser.js";
+import requireRole from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
@@ -53,7 +55,12 @@ router.get(
 /* =====================================================
    STUDENT
    ===================================================== */
-
+router.get(
+  "/attendance-status",
+  requireAuth,
+  requireRole("ADMIN"),
+  getAdminAttendanceStatus
+); 
 router.get(
   "/student",
   requireAuth,

@@ -202,10 +202,15 @@ export default function ClubInchargeLayout({ children }) {
         {/* =================================================
             PAGE CONTENT
         ================================================= */}
+ <RoleProtected
+      allowedRoles={["CLUB_INCHARGE"]}
+      checkClub={true}
+    >
 
         <div className="w-full px-3 py-4 sm:px-5 sm:py-6 md:p-8">
           {children}
         </div>
+    </RoleProtected>
 
       </main>
 

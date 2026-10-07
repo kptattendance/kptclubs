@@ -23,7 +23,6 @@ import cloudinary from "../config/cloudinary.js";
 
 export const deleteHODStudent = async (req, res) => {
   try {
-    console.log("========== DELETE HOD STUDENT ==========");
 
     const { studentId } = req.params;
 
@@ -130,7 +129,6 @@ export const deleteHODStudent = async (req, res) => {
       studentId: studentProfile._id,
     });
 
-    console.log("Attendance deleted");
 
     // =================================================
     // 9. DELETE ALL CERTIFICATES
@@ -140,7 +138,6 @@ export const deleteHODStudent = async (req, res) => {
       studentId: studentProfile._id,
     });
 
-    console.log("Certificates deleted");
 
     // =================================================
     // 10. DELETE ALL CLUB MEMBERSHIPS
@@ -150,7 +147,6 @@ export const deleteHODStudent = async (req, res) => {
       studentId: studentProfile._id,
     });
 
-    console.log("Club memberships deleted");
 
     // =================================================
     // 11. DELETE STUDENT PROFILE
@@ -160,7 +156,6 @@ export const deleteHODStudent = async (req, res) => {
       studentProfile._id
     );
 
-    console.log("Student profile deleted");
 
     // =================================================
     // 12. DELETE CLOUDINARY PHOTO
@@ -172,9 +167,6 @@ export const deleteHODStudent = async (req, res) => {
           studentUser.photoPublicId
         );
 
-        console.log(
-          "Cloudinary photo deleted"
-        );
       } catch (error) {
         console.error(
           "Cloudinary deletion failed:",
@@ -195,10 +187,7 @@ export const deleteHODStudent = async (req, res) => {
           studentUser.clerkUserId
         );
 
-        console.log(
-          "Clerk user deleted:",
-          studentUser.clerkUserId
-        );
+      
       } catch (error) {
         // If Clerk user is already missing,
         // continue with MongoDB deletion.
@@ -231,7 +220,6 @@ export const deleteHODStudent = async (req, res) => {
       studentUser._id
     );
 
-    console.log("Mongo user deleted");
 
     // =================================================
     // SUCCESS
@@ -261,7 +249,6 @@ export const deleteHODStudent = async (req, res) => {
 
 export const getHODDepartmentStudents = async (req, res) => {
   try {
-    console.log("========== HOD DEPARTMENT STUDENTS ==========");
 
     // =================================================
     // GET LOGGED-IN USER
@@ -291,11 +278,7 @@ export const getHODDepartmentStudents = async (req, res) => {
       });
     }
 
-    console.log("HOD:", hod.name);
-    console.log("HOD ID:", hod._id);
-    console.log("Role:", hod.role);
-    console.log("Department ID:", hod.departmentId);
-
+   
     // =================================================
     // CHECK ROLE
     // =================================================
@@ -333,11 +316,7 @@ export const getHODDepartmentStudents = async (req, res) => {
       });
     }
 
-    console.log(
-      "HOD Department:",
-      department.code,
-      department.name
-    );
+   
 
     // =================================================
     // GET ONLY STUDENTS FROM HOD DEPARTMENT
@@ -358,10 +337,7 @@ export const getHODDepartmentStudents = async (req, res) => {
         registerNumber: 1,
       });
 
-    console.log(
-      "Students found:",
-      students.length
-    );
+ 
 
     // =================================================
     // GET CLUB MEMBERSHIPS
@@ -506,7 +482,7 @@ export const getHODDepartmentStudents = async (req, res) => {
 export const getHODDashboard = async (req, res) => {
   try {
 
-    console.log("========== HOD DASHBOARD ==========");
+
 
     // req.user is the MongoDB User
     // provided by resolveUser middleware
@@ -520,9 +496,6 @@ export const getHODDashboard = async (req, res) => {
       });
     }
 
-    console.log("Mongo User ID:", hod._id);
-    console.log("Role:", hod.role);
-    console.log("Department ID:", hod.departmentId);
 
 
     // =================================================
@@ -704,7 +677,6 @@ GET /api/hod/applications
 
 export const getHODApplications = async (req, res) => {
   try {
-    console.log("========== HOD APPLICATIONS ==========");
 
     const clerkUserId = req.clerkUserId;
 
@@ -890,9 +862,7 @@ export const approveHODApplication =
 
     try {
 
-      console.log(
-        "========== APPROVE HOD APPLICATION =========="
-      );
+    
 
       const clerkUserId =
         req.clerkUserId;

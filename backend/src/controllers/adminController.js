@@ -29,9 +29,7 @@ export const getAdminRegistrationSummary = async (
 ) => {
   try {
 
-    console.log(
-      "========== PUBLIC REGISTRATION SUMMARY =========="
-    );
+   
 
     // =================================================
     // GET FILTERS
@@ -43,21 +41,7 @@ export const getAdminRegistrationSummary = async (
       club = "ALL",
     } = req.query;
 
-    console.log(
-      "Department Filter:",
-      department
-    );
-
-    console.log(
-      "Semester Filter:",
-      semester
-    );
-
-    console.log(
-      "Club Filter:",
-      club
-    );
-
+    
 
     // =================================================
     // GET ALL DEPARTMENTS
@@ -84,12 +68,6 @@ export const getAdminRegistrationSummary = async (
           "_id departmentId semester registerNumber"
         )
         .lean();
-
-
-    console.log(
-      "Active Students:",
-      students.length
-    );
 
 
     // =================================================
@@ -125,11 +103,6 @@ export const getAdminRegistrationSummary = async (
         )
         .lean();
 
-
-    console.log(
-      "Confirmed Memberships:",
-      memberships.length
-    );
 
 
     // =================================================
@@ -206,10 +179,6 @@ export const getAdminRegistrationSummary = async (
       );
 
 
-    console.log(
-      "Filtered Registrations:",
-      filteredMemberships.length
-    );
 
 
     // =================================================

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
+import Navbar from "./components/Navbar";
 
 /* =========================================================
    COLLEGE IMAGES
@@ -137,7 +138,7 @@ export default function RegistrationDashboard() {
 
   const [clubTableDepartmentFilter, setClubTableDepartmentFilter] =
     useState("ALL");
-
+const [clubTableSort, setClubTableSort] = useState("ALPHABETICAL");
   const [clubTableSemesterFilter, setClubTableSemesterFilter] =
     useState("ALL");
 
@@ -409,6 +410,63 @@ export default function RegistrationDashboard() {
     visibleDepartments,
   ]);
 
+
+  const sortedClubs = useMemo(() => {
+  const result = [...filteredClubs];
+
+  if (clubTableSort === "ALPHABETICAL") {
+    return result.sort((a, b) =>
+      String(a.name || "").localeCompare(
+        String(b.name || ""),
+        undefined,
+        {
+          sensitivity: "base",
+        }
+      )
+    );
+  }
+
+  if (clubTableSort === "STRENGTH") {
+    return result.sort((a, b) => {
+      const getTotal = (club) => {
+        return visibleDepartments
+          .filter(
+            (department) =>
+              clubTableDepartmentFilter === "ALL" ||
+              String(department._id) ===
+                String(clubTableDepartmentFilter)
+          )
+          .reduce((total, department) => {
+            const data = getClubDepartmentData(
+              club,
+              department
+            );
+
+            const count =
+              clubTableSemesterFilter === "ALL"
+                ? data.total || 0
+                : data.semesters?.[
+                    clubTableSemesterFilter
+                  ] || 0;
+
+            return total + Number(count);
+          }, 0);
+      };
+
+      return getTotal(b) - getTotal(a);
+    });
+  }
+
+  return result;
+}, [
+  filteredClubs,
+  clubTableSort,
+  visibleDepartments,
+  clubTableDepartmentFilter,
+  clubTableSemesterFilter,
+]);
+
+
   /* =========================================================
      LOAD DATA
   ========================================================= */
@@ -538,70 +596,19 @@ export default function RegistrationDashboard() {
     setClubFilter("ALL");
   };
 
-  const clearClubFilters = () => {
-    setClubSearch("");
-    setClubTableDepartmentFilter("ALL");
-    setClubTableSemesterFilter("ALL");
-  };
+const clearClubFilters = () => {
+  setClubSearch("");
+  setClubTableDepartmentFilter("ALL");
+  setClubTableSemesterFilter("ALL");
+  setClubTableSort("ALPHABETICAL");
+};
 
   return (
     <main className="min-h-screen bg-[#f6f8fb]">
 
-      {/* =====================================================
-          SIMPLE HEADER
-      ===================================================== */}
 
-      <header className="border-b border-slate-200 bg-white shadow-sm">
 
-        <div className="mx-auto max-w-7xl px-3 sm:px-6">
-
-          <div className="relative flex min-h-[82px] items-center justify-between">
-
-            {/* LEFT LOGO */}
-
-            <div className="flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16">
-              <img
-                src={LOGO_LEFT}
-                alt="College Logo"
-                className="h-full w-full object-contain"
-              />
-            </div>
-
-            {/* CENTER LOGO */}
-
-            <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center sm:h-16 sm:w-16">
-              <img
-                src={LOGO_CENTER}
-                alt="College Logo"
-                className="h-full w-full object-contain"
-              />
-            </div>
-
-            {/* RIGHT */}
-
-            <div className="ml-auto flex items-center gap-2">
-
-              <img
-                src={LOGO_RIGHT}
-                alt="College Logo"
-                className="hidden h-14 w-14 object-contain sm:block"
-              />
-
-              <a
-                href="/sign-in"
-                className="rounded-lg bg-indigo-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 sm:px-5 sm:text-sm"
-              >
-                Sign In
-              </a>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </header>
-
+<Navbar/>
       {/* =====================================================
           ORANGE NOTICE
       ===================================================== */}
@@ -1092,8 +1099,7 @@ export default function RegistrationDashboard() {
                 </p>
 
               </div>
-
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+<div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
 
                 <input
                   type="text"
@@ -1166,21 +1172,36 @@ export default function RegistrationDashboard() {
 
                 </select>
 
+                <select
+  value={clubTableSort}
+  onChange={(e) =>
+    setClubTableSort(e.target.value)
+  }
+  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white"
+>
+  <option value="ALPHABETICAL">
+    Sort: Alphabetical
+  </option>
+
+  <option value="STRENGTH">
+    Sort: Strength
+  </option>
+</select>
+
               </div>
 
-              {(clubSearch ||
-                clubTableDepartmentFilter !==
-                  "ALL" ||
-                clubTableSemesterFilter !==
-                  "ALL") && (
-                <button
-                  type="button"
-                  onClick={clearClubFilters}
-                  className="self-start text-xs font-bold text-indigo-600"
-                >
-                  Clear club filters
-                </button>
-              )}
+          {(clubSearch ||
+  clubTableDepartmentFilter !== "ALL" ||
+  clubTableSemesterFilter !== "ALL" ||
+  clubTableSort !== "ALPHABETICAL") && (
+  <button
+    type="button"
+    onClick={clearClubFilters}
+    className="self-start text-xs font-bold text-indigo-600"
+  >
+    Clear club filters
+  </button>
+)}
 
             </div>
 
@@ -1240,7 +1261,7 @@ export default function RegistrationDashboard() {
 
                 <tbody>
 
-                  {filteredClubs.map(
+                 {sortedClubs.map(
                     (club, index) => (
                       <tr
                         key={club._id}

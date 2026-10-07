@@ -68,15 +68,7 @@ export const deleteStudent = async (req, res) => {
     const studentId =
       req.params.studentId;
 
-    console.log(
-      "========== DELETE STUDENT =========="
-    );
-
-    console.log(
-      "Student ID:",
-      studentId
-    );
-
+ 
     // =================================================
     // FIND STUDENT PROFILE
     // =================================================
@@ -160,10 +152,7 @@ export const deleteStudent = async (req, res) => {
           clerkUserId
         );
 
-        console.log(
-          "Clerk user deleted:",
-          clerkUserId
-        );
+        
 
       } catch (clerkError) {
 
@@ -197,10 +186,7 @@ export const deleteStudent = async (req, res) => {
             }
           );
 
-          console.log(
-            "Cloudinary image deleted:",
-            publicId
-          );
+         
 
         } catch (cloudinaryError) {
 
@@ -401,10 +387,7 @@ export const registerStudent = async (req, res) => {
         clerkUser =
           clerkUsers.data[0];
 
-        console.log(
-          "Existing Clerk user found:",
-          clerkUser.id
-        );
+     
 
       } else {
 
@@ -432,10 +415,7 @@ export const registerStudent = async (req, res) => {
           });
 
 
-        console.log(
-          "New Clerk student created:",
-          clerkUser.id
-        );
+     
       }
 
     } catch (clerkError) {
@@ -648,10 +628,7 @@ GET /api/student/profile
 export const getStudentProfile = async (req, res) => {
   try {
 
-    console.log("========== STUDENT PROFILE ==========");
-    console.log("Clerk User ID:", req.clerkUserId);
-    console.log("Mongo User ID:", req.userId);
-
+   
     const user = req.user;
 
     if (!user) {

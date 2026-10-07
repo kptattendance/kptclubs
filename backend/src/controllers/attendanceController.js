@@ -1,9 +1,254 @@
 import Attendance from "../models/Attendance.js";
 import ClubMembership from "../models/ClubMembership.js";
 import StudentProfile from "../models/StudentProfile.js";
-
+import Club from "../models/Club.js";
 import Certificate from "../models/Certificate.js";
 
+// =========================================================
+// ADMIN - ATTENDANCE SUBMISSION STATUS
+// ONLY CLUBS HAVING AT LEAST ONE CONFIRMED STUDENT
+// =========================================================
+
+export const getAdminAttendanceStatus = async (req, res) => {
+  try {
+    // -----------------------------------------------------
+    // ADMIN ONLY
+    // -----------------------------------------------------
+
+    if (!req.user || req.user.role !== "ADMIN") {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view attendance status",
+      });
+    }
+
+    const { date } = req.query;
+
+    // -----------------------------------------------------
+    // FIND CLUBS WHICH ACTUALLY HAVE CONFIRMED STUDENTS
+    // -----------------------------------------------------
+
+    const clubMemberCounts = await ClubMembership.aggregate([
+      {
+        $match: {
+          status: "CONFIRMED",
+        },
+      },
+      {
+        $group: {
+          _id: "$clubId",
+          totalMembers: {
+            $sum: 1,
+          },
+        },
+      },
+      {
+        $match: {
+          totalMembers: {
+            $gt: 0,
+          },
+        },
+      },
+    ]);
+
+    // No clubs have confirmed students
+    if (clubMemberCounts.length === 0) {
+      return res.status(200).json({
+        success: true,
+        filterDate: date || null,
+        summary: {
+          totalClubs: 0,
+          markedClubs: 0,
+          notMarkedClubs: 0,
+          totalSessions: 0,
+        },
+        clubs: [],
+      });
+    }
+
+    // -----------------------------------------------------
+    // MAP CLUB -> STUDENT COUNT
+    // -----------------------------------------------------
+
+    const memberCountMap = new Map();
+
+    clubMemberCounts.forEach((item) => {
+      memberCountMap.set(
+        String(item._id),
+        Number(item.totalMembers || 0)
+      );
+    });
+
+    // -----------------------------------------------------
+    // GET ONLY THOSE CLUBS
+    // -----------------------------------------------------
+
+    const clubIds = clubMemberCounts.map((item) => item._id);
+
+    const clubs = await Club.find({
+      _id: {
+        $in: clubIds,
+      },
+      isActive: true,
+    })
+      .select("_id code name")
+      .sort({ name: 1 })
+      .lean();
+
+    // -----------------------------------------------------
+    // ATTENDANCE DATE FILTER
+    // -----------------------------------------------------
+
+    const attendanceQuery = {
+      clubId: {
+        $in: clubIds,
+      },
+    };
+
+    if (date) {
+      const startDate = new Date(
+        `${date}T00:00:00.000Z`
+      );
+
+      const endDate = new Date(
+        `${date}T23:59:59.999Z`
+      );
+
+      if (isNaN(startDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid attendance date",
+        });
+      }
+
+      attendanceQuery.attendanceDate = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
+
+    // -----------------------------------------------------
+    // GET ATTENDANCE RECORDS
+    // -----------------------------------------------------
+
+    const attendanceRecords = await Attendance.find(
+      attendanceQuery
+    )
+      .select("clubId attendanceDate")
+      .sort({
+        attendanceDate: 1,
+      })
+      .lean();
+
+    // -----------------------------------------------------
+    // CREATE CLUB ATTENDANCE MAP
+    // -----------------------------------------------------
+
+    const attendanceMap = new Map();
+
+    attendanceRecords.forEach((record) => {
+      const clubId = String(record.clubId);
+
+      if (!attendanceMap.has(clubId)) {
+        attendanceMap.set(clubId, new Set());
+      }
+
+      const dateKey = new Date(
+        record.attendanceDate
+      )
+        .toISOString()
+        .split("T")[0];
+
+      attendanceMap.get(clubId).add(dateKey);
+    });
+
+    // -----------------------------------------------------
+    // BUILD RESULT
+    // -----------------------------------------------------
+
+    const result = clubs.map((club) => {
+      const clubId = String(club._id);
+
+      const datesSet =
+        attendanceMap.get(clubId) || new Set();
+
+      const attendanceDates =
+        Array.from(datesSet).sort();
+
+      return {
+        clubId: club._id,
+        code: club.code || "",
+        name: club.name || "Unnamed Club",
+
+        // IMPORTANT:
+        // This is the number of CONFIRMED students
+        totalMembers:
+          memberCountMap.get(clubId) || 0,
+
+        attendanceDates,
+
+        totalSessions: attendanceDates.length,
+
+        lastMarkedDate:
+          attendanceDates.length > 0
+            ? attendanceDates[
+                attendanceDates.length - 1
+              ]
+            : null,
+
+        marked:
+          attendanceDates.length > 0,
+      };
+    });
+
+    // -----------------------------------------------------
+    // SUMMARY
+    // -----------------------------------------------------
+
+    const markedClubs = result.filter(
+      (club) => club.marked
+    ).length;
+
+    const notMarkedClubs = result.filter(
+      (club) => !club.marked
+    ).length;
+
+    const totalSessions = result.reduce(
+      (total, club) =>
+        total + Number(club.totalSessions || 0),
+      0
+    );
+
+    // -----------------------------------------------------
+    // RESPONSE
+    // -----------------------------------------------------
+
+    return res.status(200).json({
+      success: true,
+
+      filterDate: date || null,
+
+      summary: {
+        totalClubs: result.length,
+        markedClubs,
+        notMarkedClubs,
+        totalSessions,
+      },
+
+      clubs: result,
+    });
+  } catch (error) {
+    console.error(
+      "Get admin attendance status error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load attendance status",
+    });
+  }
+};
 // ========================================================
 // GET DETAILED CLUB ATTENDANCE
 // HOD / ADMIN / PRINCIPAL / CLUB INCHARGE

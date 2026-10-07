@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useClerk } from "@clerk/nextjs";
 
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import RoleProtected from "../components/RoleProtected";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -128,6 +129,12 @@ export default function AdminLayout({ children }) {
           />
 
        
+          <SidebarItem
+title="Check Weekly Attendance"
+           icon="📋"
+            active={pathname.startsWith("/admin/attendance-check")}
+            onClick={() => router.push("/admin/attendance-check")}
+          />
 
         </nav>
 
@@ -189,11 +196,13 @@ export default function AdminLayout({ children }) {
           </div>
 
         </header>
+<RoleProtected allowedRoles={["ADMIN"]}>
 
         {/* PAGE CONTENT */}
         <main className="relative z-0 flex-1 p-8">
           {children}
         </main>
+</RoleProtected>
 
       </div>
 

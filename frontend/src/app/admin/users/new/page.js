@@ -131,14 +131,7 @@ export default function AddUserPage() {
   const handlePhotoChange = (e) => {
     const selectedFile = e.target.files?.[0];
 
-    console.log(
-      "========== PHOTO SELECT =========="
-    );
-
-    console.log(
-      "Selected file:",
-      selectedFile
-    );
+  
 
     if (!selectedFile) {
       setPhoto(null);
@@ -173,10 +166,7 @@ export default function AddUserPage() {
 
     setError("");
 
-    console.log(
-      "PHOTO STORED:",
-      selectedFile
-    );
+
   };
 
   // =====================================================
@@ -186,14 +176,7 @@ export default function AddUserPage() {
 
   const uploadPhoto = async (photoFile) => {
     try {
-      console.log(
-        "========== UPLOAD PHOTO =========="
-      );
-
-      console.log(
-        "Photo received:",
-        photoFile
-      );
+     
 
       if (!photoFile) {
         throw new Error(
@@ -210,10 +193,7 @@ export default function AddUserPage() {
         photoFile
       );
 
-      console.log(
-        "FormData image:",
-        uploadData.get("image")
-      );
+   
 
       const token = await getToken();
 
@@ -227,14 +207,7 @@ export default function AddUserPage() {
         }
       );
 
-      console.log(
-        "========== UPLOAD RESPONSE =========="
-      );
-
-      console.log(
-        "Response:",
-        response.data
-      );
+  
 
       // Backend returns:
       // { success: true, photoUrl: "https://..." }
@@ -248,10 +221,7 @@ export default function AddUserPage() {
         );
       }
 
-      console.log(
-        "PHOTO URL RECEIVED:",
-        response.data.photoUrl
-      );
+    
 
       return response.data.photoUrl;
     } catch (error) {
@@ -276,9 +246,7 @@ export default function AddUserPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log(
-      "========== CREATE USER =========="
-    );
+   
 
     setError("");
     setSuccess("");
@@ -295,17 +263,12 @@ export default function AddUserPage() {
       let profilePhoto = "";
 
       if (photo) {
-        console.log(
-          "PHOTO EXISTS - STARTING UPLOAD"
-        );
+      
 
         profilePhoto =
           await uploadPhoto(photo);
 
-        console.log(
-          "FINAL PROFILE PHOTO URL:",
-          profilePhoto
-        );
+       
       } else {
         console.log(
           "NO PHOTO SELECTED"
@@ -345,13 +308,7 @@ export default function AddUserPage() {
           profilePhoto,
       };
 
-      console.log(
-        "========== USER DATA =========="
-      );
-
-      console.log(
-        userData
-      );
+    
 
       // ============================================
       // STEP 3: CREATE USER
@@ -372,13 +329,7 @@ export default function AddUserPage() {
           }
         );
 
-      console.log(
-        "========== USER CREATED =========="
-      );
-
-      console.log(
-        response.data
-      );
+    
 
       setSuccess(
         response.data.message ||

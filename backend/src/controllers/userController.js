@@ -966,14 +966,7 @@ export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log("");
-    console.log("================================================");
-    console.log("DELETE USER STARTED");
-    console.log("================================================");
-    console.log("Requested Mongo User ID:", id);
-    console.log("Requester Clerk ID:", req.clerkUserId);
-    console.log("Requester Mongo User ID:", req.userId);
-
+   
     // ========================================================
     // FIND USER
     // ========================================================
@@ -987,14 +980,7 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    console.log("User found:", {
-      mongoUserId: user._id.toString(),
-      clerkUserId: user.clerkUserId,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      userType: user.userType,
-    });
+  
 
     // ========================================================
     // PREVENT SELF DELETE
@@ -1047,18 +1033,11 @@ export const deleteUser = async (req, res) => {
           getCloudinaryPublicId(fileUrl);
 
         if (!publicId) {
-          console.log(
-            `Could not extract Cloudinary public ID for ${label}`
-          );
-
+        
           return;
         }
 
-        console.log(
-          `Deleting Cloudinary ${label}:`,
-          publicId
-        );
-
+      
         const result =
           await cloudinary.uploader.destroy(
             publicId,
@@ -1067,10 +1046,7 @@ export const deleteUser = async (req, res) => {
             }
           );
 
-        console.log(
-          `Cloudinary ${label} deletion result:`,
-          result
-        );
+     
 
       } catch (cloudinaryError) {
         console.error(
@@ -1089,10 +1065,7 @@ export const deleteUser = async (req, res) => {
 
     if (userRole === "STUDENT") {
 
-      console.log(
-        "Student account detected."
-      );
-
+  
       // ======================================================
       // FIND STUDENT PROFILE
       // ======================================================
@@ -1107,10 +1080,7 @@ export const deleteUser = async (req, res) => {
         const studentId =
           studentProfile._id;
 
-        console.log(
-          "StudentProfile found:",
-          studentId.toString()
-        );
+      
 
         // ====================================================
         // SAVE STUDENT PHOTO URL
@@ -1130,10 +1100,7 @@ export const deleteUser = async (req, res) => {
             "_id certificateUrl"
           );
 
-        console.log(
-          "Certificates found:",
-          certificates.length
-        );
+      
 
         // ====================================================
         // DELETE CERTIFICATE FILES FROM CLOUDINARY
@@ -1161,10 +1128,7 @@ export const deleteUser = async (req, res) => {
             studentId,
           });
 
-        console.log(
-          "Certificate records deleted:",
-          certificateResult.deletedCount
-        );
+       
 
         // ====================================================
         // DELETE ATTENDANCE
@@ -1175,10 +1139,7 @@ export const deleteUser = async (req, res) => {
             studentId,
           });
 
-        console.log(
-          "Attendance records deleted:",
-          attendanceResult.deletedCount
-        );
+       
 
         // ====================================================
         // DELETE CLUB MEMBERSHIPS
@@ -1189,11 +1150,7 @@ export const deleteUser = async (req, res) => {
             studentId,
           });
 
-        console.log(
-          "Club membership records deleted:",
-          membershipResult.deletedCount
-        );
-
+       
         // ====================================================
         // DELETE STUDENT PHOTO FROM CLOUDINARY
         // ====================================================
@@ -1211,10 +1168,7 @@ export const deleteUser = async (req, res) => {
           _id: studentId,
         });
 
-        console.log(
-          "StudentProfile deleted:",
-          studentId.toString()
-        );
+      
 
       } else {
 
@@ -1248,19 +1202,12 @@ export const deleteUser = async (req, res) => {
 
       try {
 
-        console.log(
-          "Deleting Clerk user:",
-          clerkUserId
-        );
-
+       
         await clerkClient.users.deleteUser(
           clerkUserId
         );
 
-        console.log(
-          "Clerk user deleted successfully:",
-          clerkUserId
-        );
+       
 
       } catch (clerkError) {
 
@@ -1340,25 +1287,12 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    console.log(
-      "Mongo User deleted:",
-      mongoUserId.toString()
-    );
-
+   
     // ========================================================
     // FINAL RESPONSE
     // ========================================================
 
-    console.log("");
-    console.log(
-      "================================================"
-    );
-    console.log(
-      "✅ COMPLETE USER DELETION FINISHED"
-    );
-    console.log(
-      "================================================"
-    );
+   
 
     return res.status(200).json({
 

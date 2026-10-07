@@ -5,7 +5,6 @@ import User from "../models/User.js";
 export const getClubDashboard = async (req, res) => {
   try {
     const clubId = req.user.clubId;
-console.log(clubId)
     if (!clubId) {
       return res.status(400).json({
         success: false,
