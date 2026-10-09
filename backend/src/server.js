@@ -67,6 +67,10 @@ app.use("/api/certificates", certificateRoutes);
 
 const PORT = process.env.PORT || 5000;
 
+
+vc-domain-verify=placements.kptmangaluru.in,a39462719e515b1cb72c
+
+
 const startServer = async () => {
   try {
     await connectDB();

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { useState } from "react";
+import RoleProtected from "@/app/components/RoleProtected";
 
 export default function ClubInchargeLayout({ children }) {
   const params = useParams();
