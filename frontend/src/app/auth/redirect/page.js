@@ -73,6 +73,12 @@ export default function AuthRedirectPage() {
           return;
         }
 
+        // PRINCIPAL
+        if (user.role === "PRINCIPAL") {
+          router.replace("/principal");
+          return;
+        }
+
         // CLUB INCHARGE
         if (user.role === "CLUB_INCHARGE") {
           if (!user.clubId) {

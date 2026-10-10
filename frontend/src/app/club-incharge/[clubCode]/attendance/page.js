@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
+import { photoThumb } from "@/lib/photo";
 
 export default function AttendancePage() {
   const { getToken } = useAuth();
@@ -1174,7 +1175,7 @@ function StudentPhoto({ student }) {
   if (student.photoUrl) {
     return (
       <img
-        src={student.photoUrl}
+        src={photoThumb(student.photoUrl)}
         alt={student.name || "Student"}
         className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-gray-200"
       />

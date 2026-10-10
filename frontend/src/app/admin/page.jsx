@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
+import { photoThumb } from "@/lib/photo";
 
 export default function AttendancePage() {
   const { getToken } = useAuth();
@@ -1202,7 +1203,7 @@ const downloadExcelReport = () => {
 
                                   <img
                                     src={
-                                      student.photoUrl
+                                      photoThumb(student.photoUrl)
                                     }
                                     alt=""
                                     className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-slate-200"

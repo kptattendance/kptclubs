@@ -4,11 +4,14 @@ import {
   getStudentProfile,
   getStudentClubs,
   registerStudent,
+  registerForClub,
   deleteStudent,
 } from "../controllers/studentController.js";
 
 import requireAuth from "../middleware/authMiddleware.js";
 import resolveUser from "../middleware/resolveUser.js";
+import requireRole from "../middleware/roleMiddleware.js";
+import { publicWriteLimiter } from "../middleware/security.js";
 
 const router = express.Router();
 
@@ -41,7 +44,19 @@ router.get(
 
 router.post(
   "/register",
+  publicWriteLimiter,
   registerStudent
+);
+
+// =====================================================
+// LOGGED-IN STUDENT APPLIES TO A CLUB
+// =====================================================
+
+router.post(
+  "/club-registration",
+  requireAuth,
+  resolveUser,
+  registerForClub
 );
 
 
@@ -52,7 +67,7 @@ router.post(
 router.delete(
   "/:studentId",
   requireAuth,
-  resolveUser,
+  requireRole("ADMIN"),
   deleteStudent
 );
 

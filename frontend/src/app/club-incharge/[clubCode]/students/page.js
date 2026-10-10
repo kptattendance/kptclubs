@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
+import { photoThumb } from "@/lib/photo";
 
 export default function ClubStudentsPage() {
   const { clubCode } = useParams();
@@ -1776,7 +1777,7 @@ function StudentPhoto({ student }) {
   if (student.photoUrl) {
     return (
       <img
-        src={student.photoUrl}
+        src={photoThumb(student.photoUrl)}
         alt={student.name || "Student"}
         className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-gray-200"
       />

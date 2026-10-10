@@ -65,6 +65,11 @@ const studentProfileSchema = new mongoose.Schema(
   }
 );
 
+// HOD pages list students by department
+studentProfileSchema.index({
+  departmentId: 1,
+});
+
 const StudentProfile = mongoose.model(
   "StudentProfile",
   studentProfileSchema

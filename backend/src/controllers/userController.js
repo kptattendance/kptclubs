@@ -6,6 +6,7 @@ import ClubMembership from "../models/ClubMembership.js";
 import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
 import cloudinary from "../config/cloudinary.js";
+import { getCloudinaryPublicId } from "../utils/cloudinaryHelpers.js";
 
 import { clerkClient } from "@clerk/express";
 

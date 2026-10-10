@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
+import { photoThumb } from "@/lib/photo";
 
 export default function AttendancePage() {
   const { getToken } = useAuth();
@@ -17,6 +18,9 @@ export default function AttendancePage() {
   const [loadingAttendance, setLoadingAttendance] = useState(false);
 
   const [error, setError] = useState("");
+
+  // Ignore a slow response for a club that is no longer selected
+  const latestRequest = useRef(0);
 
   /* =====================================================
      LOAD CLUBS
@@ -60,9 +64,12 @@ export default function AttendancePage() {
      ===================================================== */
 
   const loadAttendance = async () => {
+    const requestId = ++latestRequest.current;
+
     if (!selectedClub) {
       setStudents([]);
       setTotalClasses(0);
+      setLoadingAttendance(false);
       return;
     }
 
@@ -81,6 +88,10 @@ export default function AttendancePage() {
         }
       );
 
+      if (requestId !== latestRequest.current) {
+        return;
+      }
+
       if (!response.data.success) {
         throw new Error(
           response.data.message ||
@@ -91,6 +102,10 @@ export default function AttendancePage() {
       setStudents(response.data.students || []);
       setTotalClasses(response.data.totalClasses || 0);
     } catch (err) {
+      if (requestId !== latestRequest.current) {
+        return;
+      }
+
       console.error(
         "Load consolidated attendance error:",
         err
@@ -105,7 +120,9 @@ export default function AttendancePage() {
       setStudents([]);
       setTotalClasses(0);
     } finally {
-      setLoadingAttendance(false);
+      if (requestId === latestRequest.current) {
+        setLoadingAttendance(false);
+      }
     }
   };
 
@@ -296,6 +313,7 @@ export default function AttendancePage() {
           ================================================= */}
 
       {!loadingAttendance &&
+        !error &&
         selectedClub &&
         students.length === 0 && (
           <div className="rounded-xl border bg-white p-10 text-center">
@@ -319,9 +337,9 @@ export default function AttendancePage() {
       {!loadingAttendance &&
         students.length > 0 && (
 
-          <div className="hidden overflow-hidden rounded-xl border bg-white shadow-sm md:block">
+          <div className="hidden overflow-x-auto rounded-xl border bg-white shadow-sm lg:block">
 
-            <table className="w-full text-left">
+            <table className="w-full min-w-[760px] text-left">
 
               <thead className="border-b bg-gray-50">
 
@@ -383,7 +401,7 @@ export default function AttendancePage() {
                         {student.photoUrl ? (
 
                           <img
-                            src={student.photoUrl}
+                            src={photoThumb(student.photoUrl)}
                             alt=""
                             className="h-10 w-10 rounded-full object-cover"
                           />
@@ -471,7 +489,7 @@ export default function AttendancePage() {
       {!loadingAttendance &&
         students.length > 0 && (
 
-          <div className="space-y-4 md:hidden">
+          <div className="grid gap-4 sm:grid-cols-2 lg:hidden">
 
             {students.map((student, index) => (
 
@@ -482,14 +500,14 @@ export default function AttendancePage() {
 
                 <div className="flex items-start justify-between gap-3">
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
 
                     {student.photoUrl ? (
 
                       <img
-                        src={student.photoUrl}
+                        src={photoThumb(student.photoUrl)}
                         alt=""
-                        className="h-11 w-11 rounded-full object-cover"
+                        className="h-11 w-11 shrink-0 rounded-full object-cover"
                       />
 
                     ) : (
@@ -500,9 +518,9 @@ export default function AttendancePage() {
 
                     )}
 
-                    <div>
+                    <div className="min-w-0">
 
-                      <p className="font-semibold text-gray-900">
+                      <p className="break-words font-semibold text-gray-900">
                         {index + 1}. {student.name}
                       </p>
 

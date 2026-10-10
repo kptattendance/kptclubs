@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
 import { useRouter } from "next/navigation";
+import { photoThumb } from "@/lib/photo";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -993,7 +994,7 @@ export default function AdminUsersPage() {
                             {user.profilePhoto ? (
                               <img
                                 src={
-                                  user.profilePhoto
+                                  photoThumb(user.profilePhoto)
                                 }
                                 alt={
                                   user.name ||

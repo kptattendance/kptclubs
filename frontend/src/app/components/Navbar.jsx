@@ -22,7 +22,7 @@ export default function Navbar() {
           </div>
 
           {/* CENTER BRANDING */}
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 sm:gap-3">
+          <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-3 sm:flex">
             
             <div className="flex h-12 w-12 shrink-0 items-center justify-center sm:h-14 sm:w-14">
               <img

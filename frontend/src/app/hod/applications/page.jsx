@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import axios from "axios";
+import { photoThumb } from "@/lib/photo";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -891,7 +892,7 @@ export default function HODApplicationsPage() {
 
                                 <img
                                   src={
-                                    student.photoUrl
+                                    photoThumb(student.photoUrl)
                                   }
                                   alt={
                                     student.name ||

@@ -7,6 +7,8 @@ import PDFDocument from "pdfkit";
 
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
+import { isOwnCloudinaryUrl } from "../utils/cloudinaryHelpers.js";
 
 // ======================================================
 // STUDENT DOWNLOAD CERTIFICATE
@@ -176,10 +178,15 @@ export const downloadStudentCertificate = async (
       student.userId?.profilePhoto ||
       null;
 
-    if (studentPhoto) {
+    // Only fetch photos stored in this project's Cloudinary
+    // account: the server must never request arbitrary URLs.
+    if (isOwnCloudinaryUrl(studentPhoto)) {
       try {
         const photoResponse =
-          await fetch(studentPhoto);
+          await fetch(studentPhoto, {
+            redirect: "error",
+            signal: AbortSignal.timeout(8000),
+          });
 
         if (photoResponse.ok) {
           const arrayBuffer =
@@ -1173,31 +1180,75 @@ export const getClubCertificateStudents = async (req, res) => {
       })
       .sort({ createdAt: 1 });
 
-    const students = [];
+    const activeMemberships = memberships.filter(
+      (membership) => membership.studentId
+    );
 
-    for (const membership of memberships) {
-      const student = membership.studentId;
+    const studentIds = activeMemberships.map(
+      (membership) => membership.studentId._id
+    );
 
-      if (!student) {
-        continue;
+    // ==================================================
+    // Load attendance and certificates for the whole club
+    // in two queries instead of several queries per student.
+    // ==================================================
+
+    const loadCertificates = () =>
+      Certificate.find({
+        clubId,
+        studentId: { $in: studentIds },
+      })
+        .select(
+          "studentId certificateNumber status approvedAt attendancePercentage"
+        )
+        .lean();
+
+    const [clubAttendance, existingCertificates] =
+      await Promise.all([
+        Attendance.find({
+          clubId,
+          studentId: { $in: studentIds },
+        })
+          .select("studentId attendanceDate status")
+          .lean(),
+
+        loadCertificates(),
+      ]);
+
+    const attendanceByStudent = new Map();
+
+    clubAttendance.forEach((record) => {
+      const key = String(record.studentId);
+
+      if (!attendanceByStudent.has(key)) {
+        attendanceByStudent.set(key, []);
       }
 
-      // ==================================================
-      // ATTENDANCE
-      // Attendance is ONLY displayed.
-      // It does NOT decide certificate permission.
-      // ==================================================
+      attendanceByStudent.get(key).push(record);
+    });
 
-      const attendanceRecords = await Attendance.find({
-        clubId,
-        studentId: student._id,
-        attendanceDate: {
-          $gte: membership.joinedAt || membership.createdAt,
-          ...(membership.leftAt
-            ? { $lte: membership.leftAt }
-            : {}),
-        },
-      }).select("status");
+    // ==================================================
+    // ATTENDANCE
+    // Attendance is ONLY displayed.
+    // It does NOT decide certificate permission.
+    // ==================================================
+
+    const attendanceStats = new Map();
+
+    activeMemberships.forEach((membership) => {
+      const key = String(membership.studentId._id);
+
+      const from =
+        membership.joinedAt || membership.createdAt;
+
+      const attendanceRecords = (
+        attendanceByStudent.get(key) || []
+      ).filter(
+        (record) =>
+          record.attendanceDate >= from &&
+          (!membership.leftAt ||
+            record.attendanceDate <= membership.leftAt)
+      );
 
       const totalClasses = attendanceRecords.length;
 
@@ -1205,47 +1256,118 @@ export const getClubCertificateStudents = async (req, res) => {
         (record) => record.status === "PRESENT"
       ).length;
 
-      const attendancePercentage =
-        totalClasses > 0
-          ? Number(
-              ((attendedClasses / totalClasses) * 100).toFixed(2)
-            )
-          : 0;
-
-      // ==================================================
-      // CERTIFICATE
-      // Create certificate record for EVERY confirmed
-      // student if it does not already exist.
-      // ==================================================
-
-      let certificate = await Certificate.findOne({
-        studentId: student._id,
-        clubId,
+      attendanceStats.set(key, {
+        totalClasses,
+        attendedClasses,
+        attendancePercentage:
+          totalClasses > 0
+            ? Number(
+                ((attendedClasses / totalClasses) * 100).toFixed(2)
+              )
+            : 0,
       });
+    });
+
+    // ==================================================
+    // CERTIFICATE
+    // Create certificate record for EVERY confirmed
+    // student if it does not already exist.
+    // ==================================================
+
+    let certificateMap = new Map(
+      existingCertificates.map((certificate) => [
+        String(certificate.studentId),
+        certificate,
+      ])
+    );
+
+    const currentYear = new Date().getFullYear();
+
+    const newCertificates = [];
+    const percentageUpdates = [];
+
+    activeMemberships.forEach((membership) => {
+      const studentId = membership.studentId._id;
+      const key = String(studentId);
+
+      const { attendancePercentage } =
+        attendanceStats.get(key);
+
+      const certificate = certificateMap.get(key);
 
       if (!certificate) {
-        const currentYear = new Date().getFullYear();
-
-        const certificateNumber =
-          `KPT-${currentYear}-${Date.now()}-${Math.floor(
-            Math.random() * 10000
-          )}`;
-
-        certificate = await Certificate.create({
-          studentId: student._id,
-          clubId: clubId,
-          certificateNumber,
+        newCertificates.push({
+          studentId,
+          clubId,
+          certificateNumber: `KPT-${currentYear}-${Date.now()}-${crypto
+            .randomBytes(4)
+            .toString("hex")
+            .toUpperCase()}`,
           academicStartYear: currentYear,
           academicEndYear: currentYear + 1,
           attendancePercentage,
           status: "ELIGIBLE",
         });
-      } else {
+      } else if (
+        certificate.attendancePercentage !== attendancePercentage
+      ) {
         // Keep attendance information updated
-        certificate.attendancePercentage =
-          attendancePercentage;
+        percentageUpdates.push({
+          updateOne: {
+            filter: { _id: certificate._id },
+            update: { $set: { attendancePercentage } },
+          },
+        });
+      }
+    });
 
-        await certificate.save();
+    if (percentageUpdates.length > 0) {
+      await Certificate.bulkWrite(percentageUpdates, {
+        ordered: false,
+      });
+    }
+
+    if (newCertificates.length > 0) {
+      try {
+        await Certificate.insertMany(newCertificates, {
+          ordered: false,
+        });
+      } catch (insertError) {
+        // Another request created the same certificates
+        // at the same moment: they exist, so carry on.
+        if (insertError?.code !== 11000) {
+          throw insertError;
+        }
+      }
+
+      const allCertificates = await loadCertificates();
+
+      certificateMap = new Map(
+        allCertificates.map((certificate) => [
+          String(certificate.studentId),
+          certificate,
+        ])
+      );
+    }
+
+    const students = [];
+
+    for (const membership of activeMemberships) {
+      const student = membership.studentId;
+
+      const {
+        totalClasses,
+        attendedClasses,
+        attendancePercentage,
+      } = attendanceStats.get(String(student._id));
+
+      const certificate = certificateMap.get(
+        String(student._id)
+      );
+
+      // Could not be created (should not happen)
+      if (!certificate) {
+        continue;
       }
 
       // ==================================================

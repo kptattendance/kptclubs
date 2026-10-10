@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
+import { photoThumb } from "@/lib/photo";
 
 export default function ClubInchargeCertificatePage() {
   const { getToken, isLoaded } = useAuth();
@@ -1014,7 +1015,7 @@ const downloadExcel = () => {
                                   {student.profilePhoto ? (
 
                                     <img
-                                      src={student.profilePhoto}
+                                      src={photoThumb(student.profilePhoto)}
                                       alt=""
                                       className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white shadow-sm"
                                     />
@@ -1238,7 +1239,7 @@ const downloadExcel = () => {
                             {student.profilePhoto ? (
 
                               <img
-                                src={student.profilePhoto}
+                                src={photoThumb(student.profilePhoto)}
                                 alt=""
                                 className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-gray-200"
                               />

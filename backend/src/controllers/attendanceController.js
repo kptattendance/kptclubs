@@ -1,8 +1,99 @@
+import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
 import ClubMembership from "../models/ClubMembership.js";
 import StudentProfile from "../models/StudentProfile.js";
 import Club from "../models/Club.js";
 import Certificate from "../models/Certificate.js";
+
+// =========================================================
+// HELPERS
+// =========================================================
+
+const isValidId = (value) =>
+  typeof value === "string" &&
+  mongoose.Types.ObjectId.isValid(value);
+
+// "2026-01-31" -> start and end of that day (UTC)
+const getDayRange = (value) => {
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(value)
+  ) {
+    return null;
+  }
+
+  const startDate = new Date(`${value}T00:00:00.000Z`);
+  const endDate = new Date(`${value}T23:59:59.999Z`);
+
+  if (isNaN(startDate.getTime())) {
+    return null;
+  }
+
+  return { startDate, endDate };
+};
+
+const toDateKey = (value) =>
+  new Date(value).toISOString().split("T")[0];
+
+// Formatting a weekday is slow, so do it once per date
+const createDayNameLookup = () => {
+  const dayNames = new Map();
+
+  return (dateKey) => {
+    if (!dayNames.has(dateKey)) {
+      dayNames.set(
+        dateKey,
+        new Date(`${dateKey}T00:00:00.000Z`).toLocaleDateString(
+          "en-IN",
+          {
+            weekday: "long",
+            timeZone: "UTC",
+          }
+        )
+      );
+    }
+
+    return dayNames.get(dateKey);
+  };
+};
+
+const toPercentage = (attended, total) =>
+  total > 0
+    ? Number(((attended / total) * 100).toFixed(2))
+    : 0;
+
+const STUDENT_POPULATE = [
+  {
+    path: "departmentId",
+    select: "code name",
+  },
+  {
+    path: "userId",
+    select: "name email phone profilePhoto",
+  },
+];
+
+const STUDENT_FIELDS =
+  "registerNumber semester admissionYear photoUrl departmentId userId";
+
+const formatDepartment = (department) =>
+  department
+    ? {
+        _id: department._id,
+        code: department.code,
+        name: department.name,
+      }
+    : null;
+
+const byRegisterNumber = (a, b) =>
+  String(a.registerNumber || "").localeCompare(
+    String(b.registerNumber || "")
+  );
+
+// A Club In-charge may only read attendance of their own club
+const canAccessClub = (user, clubId) =>
+  user.role !== "CLUB_INCHARGE" ||
+  String(user.clubId || "") === String(clubId);
 
 // =========================================================
 // ADMIN - ATTENDANCE SUBMISSION STATUS
@@ -11,10 +102,6 @@ import Certificate from "../models/Certificate.js";
 
 export const getAdminAttendanceStatus = async (req, res) => {
   try {
-    // -----------------------------------------------------
-    // ADMIN ONLY
-    // -----------------------------------------------------
-
     if (!req.user || req.user.role !== "ADMIN") {
       return res.status(403).json({
         success: false,
@@ -23,6 +110,19 @@ export const getAdminAttendanceStatus = async (req, res) => {
     }
 
     const { date } = req.query;
+
+    let dayRange = null;
+
+    if (date) {
+      dayRange = getDayRange(date);
+
+      if (!dayRange) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid attendance date",
+        });
+      }
+    }
 
     // -----------------------------------------------------
     // FIND CLUBS WHICH ACTUALLY HAVE CONFIRMED STUDENTS
@@ -42,16 +142,8 @@ export const getAdminAttendanceStatus = async (req, res) => {
           },
         },
       },
-      {
-        $match: {
-          totalMembers: {
-            $gt: 0,
-          },
-        },
-      },
     ]);
 
-    // No clubs have confirmed students
     if (clubMemberCounts.length === 0) {
       return res.status(200).json({
         success: true,
@@ -66,100 +158,71 @@ export const getAdminAttendanceStatus = async (req, res) => {
       });
     }
 
-    // -----------------------------------------------------
-    // MAP CLUB -> STUDENT COUNT
-    // -----------------------------------------------------
-
-    const memberCountMap = new Map();
-
-    clubMemberCounts.forEach((item) => {
-      memberCountMap.set(
+    const memberCountMap = new Map(
+      clubMemberCounts.map((item) => [
         String(item._id),
-        Number(item.totalMembers || 0)
-      );
-    });
-
-    // -----------------------------------------------------
-    // GET ONLY THOSE CLUBS
-    // -----------------------------------------------------
+        Number(item.totalMembers || 0),
+      ])
+    );
 
     const clubIds = clubMemberCounts.map((item) => item._id);
 
-    const clubs = await Club.find({
-      _id: {
-        $in: clubIds,
-      },
-      isActive: true,
-    })
-      .select("_id code name")
-      .sort({ name: 1 })
-      .lean();
-
     // -----------------------------------------------------
-    // ATTENDANCE DATE FILTER
+    // CLUBS + ONE ROW PER CLUB PER ATTENDANCE DATE
+    // (grouped in the database instead of loading every record)
     // -----------------------------------------------------
 
-    const attendanceQuery = {
+    const attendanceMatch = {
       clubId: {
         $in: clubIds,
       },
     };
 
-    if (date) {
-      const startDate = new Date(
-        `${date}T00:00:00.000Z`
-      );
-
-      const endDate = new Date(
-        `${date}T23:59:59.999Z`
-      );
-
-      if (isNaN(startDate.getTime())) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid attendance date",
-        });
-      }
-
-      attendanceQuery.attendanceDate = {
-        $gte: startDate,
-        $lte: endDate,
+    if (dayRange) {
+      attendanceMatch.attendanceDate = {
+        $gte: dayRange.startDate,
+        $lte: dayRange.endDate,
       };
     }
 
-    // -----------------------------------------------------
-    // GET ATTENDANCE RECORDS
-    // -----------------------------------------------------
-
-    const attendanceRecords = await Attendance.find(
-      attendanceQuery
-    )
-      .select("clubId attendanceDate")
-      .sort({
-        attendanceDate: 1,
+    const [clubs, sessions] = await Promise.all([
+      Club.find({
+        _id: {
+          $in: clubIds,
+        },
+        isActive: true,
       })
-      .lean();
+        .select("_id code name")
+        .sort({ name: 1 })
+        .lean(),
 
-    // -----------------------------------------------------
-    // CREATE CLUB ATTENDANCE MAP
-    // -----------------------------------------------------
+      Attendance.aggregate([
+        {
+          $match: attendanceMatch,
+        },
+        {
+          $group: {
+            _id: {
+              clubId: "$clubId",
+              attendanceDate: "$attendanceDate",
+            },
+          },
+        },
+      ]),
+    ]);
 
     const attendanceMap = new Map();
 
-    attendanceRecords.forEach((record) => {
-      const clubId = String(record.clubId);
+    sessions.forEach((session) => {
+      const clubId = String(session._id.clubId);
 
       if (!attendanceMap.has(clubId)) {
         attendanceMap.set(clubId, new Set());
       }
 
-      const dateKey = new Date(
-        record.attendanceDate
-      )
-        .toISOString()
-        .split("T")[0];
-
-      attendanceMap.get(clubId).add(dateKey);
+      attendanceMap
+        .get(clubId)
+        .add(toDateKey(session._id.attendanceDate));
     });
 
     // -----------------------------------------------------
@@ -169,21 +232,17 @@ export const getAdminAttendanceStatus = async (req, res) => {
     const result = clubs.map((club) => {
       const clubId = String(club._id);
 
-      const datesSet =
-        attendanceMap.get(clubId) || new Set();
-
-      const attendanceDates =
-        Array.from(datesSet).sort();
+      const attendanceDates = Array.from(
+        attendanceMap.get(clubId) || []
+      ).sort();
 
       return {
         clubId: club._id,
         code: club.code || "",
         name: club.name || "Unnamed Club",
 
-        // IMPORTANT:
-        // This is the number of CONFIRMED students
-        totalMembers:
-          memberCountMap.get(clubId) || 0,
+        // Number of CONFIRMED students
+        totalMembers: memberCountMap.get(clubId) || 0,
 
         attendanceDates,
 
@@ -191,37 +250,21 @@ export const getAdminAttendanceStatus = async (req, res) => {
 
         lastMarkedDate:
           attendanceDates.length > 0
-            ? attendanceDates[
-                attendanceDates.length - 1
-              ]
+            ? attendanceDates[attendanceDates.length - 1]
             : null,
 
-        marked:
-          attendanceDates.length > 0,
+        marked: attendanceDates.length > 0,
       };
     });
-
-    // -----------------------------------------------------
-    // SUMMARY
-    // -----------------------------------------------------
 
     const markedClubs = result.filter(
       (club) => club.marked
     ).length;
 
-    const notMarkedClubs = result.filter(
-      (club) => !club.marked
-    ).length;
-
     const totalSessions = result.reduce(
-      (total, club) =>
-        total + Number(club.totalSessions || 0),
+      (total, club) => total + club.totalSessions,
       0
     );
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -231,7 +274,7 @@ export const getAdminAttendanceStatus = async (req, res) => {
       summary: {
         totalClubs: result.length,
         markedClubs,
-        notMarkedClubs,
+        notMarkedClubs: result.length - markedClubs,
         totalSessions,
       },
 
@@ -249,6 +292,7 @@ export const getAdminAttendanceStatus = async (req, res) => {
     });
   }
 };
+
 // ========================================================
 // GET DETAILED CLUB ATTENDANCE
 // HOD / ADMIN / PRINCIPAL / CLUB INCHARGE
@@ -256,10 +300,6 @@ export const getAdminAttendanceStatus = async (req, res) => {
 
 export const getClubAttendanceDetails = async (req, res) => {
   try {
-    // ========================================================
-    // ALLOWED ROLES
-    // ========================================================
-
     const allowedRoles = [
       "CLUB_INCHARGE",
       "HOD",
@@ -274,10 +314,6 @@ export const getClubAttendanceDetails = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // CLUB ID
-    // ========================================================
-
     const { clubId } = req.query;
 
     if (!clubId) {
@@ -287,9 +323,19 @@ export const getClubAttendanceDetails = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // HOD DEPARTMENT CHECK
-    // ========================================================
+    if (!isValidId(clubId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club",
+      });
+    }
+
+    if (!canAccessClub(req.user, clubId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can view attendance only for your own club",
+      });
+    }
 
     if (
       req.user.role === "HOD" &&
@@ -302,131 +348,100 @@ export const getClubAttendanceDetails = async (req, res) => {
     }
 
     // ========================================================
-    // GET CONFIRMED MEMBERS
+    // MEMBERS, ATTENDANCE AND CERTIFICATES
+    // Three queries in parallel, no query per student.
     // ========================================================
 
-    const memberships = await ClubMembership.find({
-      clubId,
-      status: "CONFIRMED",
-    })
-      .populate({
-        path: "studentId",
-        populate: [
-          {
-            path: "departmentId",
-            select: "code name",
-          },
-          {
-            path: "userId",
-            select: "name email phone profilePhoto",
-          },
-        ],
-      })
-      .sort({
-        createdAt: 1,
-      });
+    const [memberships, attendanceRecords, certificates] =
+      await Promise.all([
+        ClubMembership.find({
+          clubId,
+          status: "CONFIRMED",
+        })
+          .select("studentId")
+          .populate({
+            path: "studentId",
+            select: STUDENT_FIELDS,
+            populate: STUDENT_POPULATE,
+          })
+          .lean(),
+
+        Attendance.find({
+          clubId,
+        })
+          .select(
+            "studentId attendanceDate status markedAt submittedAt"
+          )
+          .sort({
+            attendanceDate: 1,
+          })
+          .lean(),
+
+        Certificate.find({
+          clubId,
+        })
+          .select(
+            "studentId certificateNumber status approvedAt issuedAt"
+          )
+          .lean(),
+      ]);
 
     // ========================================================
-    // HOD:
-    // ONLY STUDENTS FROM HOD DEPARTMENT
+    // HOD: ONLY STUDENTS FROM HOD DEPARTMENT
     // ========================================================
 
     const filteredMemberships =
       req.user.role === "HOD"
-        ? memberships.filter((membership) => {
-            const student = membership.studentId;
-
-            if (!student?.departmentId) {
-              return false;
-            }
-
-            return (
-              String(student.departmentId._id) ===
-              String(req.user.departmentId)
-            );
-          })
+        ? memberships.filter(
+            (membership) =>
+              membership.studentId?.departmentId &&
+              String(membership.studentId.departmentId._id) ===
+                String(req.user.departmentId)
+          )
         : memberships;
 
     // ========================================================
-    // GET ALL ATTENDANCE RECORDS FOR THIS CLUB
+    // GROUP ATTENDANCE BY STUDENT + UNIQUE CLASS DATES
     // ========================================================
 
-    const attendanceRecords = await Attendance.find({
-      clubId,
-    }).sort({
-      attendanceDate: 1,
-    });
-
-    // ========================================================
-    // GET UNIQUE CLASS DATES
-    // ========================================================
+    const getDayName = createDayNameLookup();
 
     const classDateSet = new Set();
-
-    attendanceRecords.forEach((record) => {
-      if (!record.attendanceDate) {
-        return;
-      }
-
-      const date = new Date(record.attendanceDate)
-        .toISOString()
-        .split("T")[0];
-
-      classDateSet.add(date);
-    });
-
-    const classDates = Array.from(
-      classDateSet
-    ).sort();
-
-    const totalClasses = classDates.length;
-
-    // ========================================================
-    // GROUP ATTENDANCE BY STUDENT
-    // ========================================================
 
     const attendanceMap = new Map();
 
     attendanceRecords.forEach((record) => {
-      if (
-        !record.studentId ||
-        !record.attendanceDate
-      ) {
+      if (!record.studentId || !record.attendanceDate) {
         return;
       }
 
-      const studentId =
-        record.studentId.toString();
+      const date = toDateKey(record.attendanceDate);
+
+      classDateSet.add(date);
+
+      const studentId = String(record.studentId);
 
       if (!attendanceMap.has(studentId)) {
         attendanceMap.set(studentId, []);
       }
 
-      const dateObject =
-        new Date(record.attendanceDate);
-
       attendanceMap.get(studentId).push({
-        date: dateObject
-          .toISOString()
-          .split("T")[0],
-
-        day: dateObject.toLocaleDateString(
-          "en-IN",
-          {
-            weekday: "long",
-            timeZone: "UTC",
-          }
-        ),
-
+        date,
+        day: getDayName(date),
         status: record.status,
-
-        markedAt:
-          record.markedAt || null,
-
-        submittedAt:
-          record.submittedAt || null,
+        markedAt: record.markedAt || null,
+        submittedAt: record.submittedAt || null,
       });
     });
+
+    const classDates = Array.from(classDateSet).sort();
+
+    const certificateMap = new Map(
+      certificates.map((certificate) => [
+        String(certificate.studentId),
+        certificate,
+      ])
+    );
 
     // ========================================================
     // BUILD STUDENT DATA
@@ -435,92 +450,40 @@ export const getClubAttendanceDetails = async (req, res) => {
     const students = [];
 
     for (const membership of filteredMemberships) {
-      const student =
-        membership.studentId;
+      const student = membership.studentId;
 
       if (!student) {
         continue;
       }
 
-      const studentId =
-        student._id.toString();
+      const studentId = String(student._id);
 
-      const history =
-        attendanceMap.get(studentId) || [];
+      const history = attendanceMap.get(studentId) || [];
 
-      const attendedClasses =
-        history.filter(
-          (record) =>
-            record.status === "PRESENT"
-        ).length;
+      const attendedClasses = history.filter(
+        (record) => record.status === "PRESENT"
+      ).length;
 
-      const studentTotalClasses =
-        history.length;
+      const certificate = certificateMap.get(studentId);
 
-      const percentage =
-        studentTotalClasses > 0
-          ? Number(
-              (
-                (attendedClasses /
-                  studentTotalClasses) *
-                100
-              ).toFixed(2)
-            )
-          : 0;
-
-      // ======================================================
-      // CERTIFICATE
-      // ======================================================
-
-      const certificate =
-        await Certificate.findOne({
-          studentId: student._id,
-          clubId,
-        }).select(
-          "_id certificateNumber status approvedAt issuedAt"
-        );
-
-      const certificateStatus =
-        certificate?.status || null;
-
-      const certificateAllowed =
-        certificateStatus === "APPROVED" ||
-        certificateStatus === "ISSUED";
+      const certificateStatus = certificate?.status || null;
 
       students.push({
         studentId: student._id,
 
-        name:
-          student.userId?.name || "",
+        name: student.userId?.name || "",
 
-        email:
-          student.userId?.email || "",
+        email: student.userId?.email || "",
 
-        phone:
-          student.userId?.phone || "",
+        phone: student.userId?.phone || "",
 
-        registerNumber:
-          student.registerNumber || "",
+        registerNumber: student.registerNumber || "",
 
-        department:
-          student.departmentId
-            ? {
-                _id:
-                  student.departmentId._id,
+        department: formatDepartment(student.departmentId),
 
-                code:
-                  student.departmentId.code,
+        semester: student.semester,
 
-                name:
-                  student.departmentId.name,
-              }
-            : null,
-
-        semester:
-          student.semester,
-
-        admissionYear:
-          student.admissionYear,
+        admissionYear: student.admissionYear,
 
         photoUrl:
           student.photoUrl ||
@@ -529,109 +492,77 @@ export const getClubAttendanceDetails = async (req, res) => {
 
         attendedClasses,
 
-        totalClasses:
-          studentTotalClasses,
+        totalClasses: history.length,
 
-        percentage,
+        percentage: toPercentage(
+          attendedClasses,
+          history.length
+        ),
 
-        attendanceHistory:
-          history,
+        attendanceHistory: history,
 
-        certificateId:
-          certificate?._id || null,
+        certificateId: certificate?._id || null,
 
         certificateNumber:
-          certificate?.certificateNumber ||
-          null,
+          certificate?.certificateNumber || null,
 
         certificateStatus,
 
-        certificateAllowed,
+        certificateAllowed:
+          certificateStatus === "APPROVED" ||
+          certificateStatus === "ISSUED",
 
-        approvedAt:
-          certificate?.approvedAt || null,
+        approvedAt: certificate?.approvedAt || null,
 
-        issuedAt:
-          certificate?.issuedAt || null,
+        issuedAt: certificate?.issuedAt || null,
       });
     }
 
-    // ========================================================
-    // SORT
-    // ========================================================
-
-    students.sort((a, b) =>
-      String(
-        a.registerNumber || ""
-      ).localeCompare(
-        String(
-          b.registerNumber || ""
-        )
-      )
-    );
+    students.sort(byRegisterNumber);
 
     // ========================================================
     // SUMMARY
     // ========================================================
-
-    const certificateAllowedCount =
-      students.filter(
-        (student) =>
-          student.certificateAllowed
-      ).length;
-
-    const attendance75Plus =
-      students.filter(
-        (student) =>
-          student.percentage >= 75
-      ).length;
 
     const averageAttendance =
       students.length > 0
         ? Number(
             (
               students.reduce(
-                (sum, student) =>
-                  sum +
-                  Number(
-                    student.percentage || 0
-                  ),
+                (sum, student) => sum + student.percentage,
                 0
               ) / students.length
             ).toFixed(2)
           )
         : 0;
 
-    // ========================================================
-    // RESPONSE
-    // ========================================================
-
     return res.status(200).json({
       success: true,
 
       clubId,
 
-      totalClasses,
+      totalClasses: classDates.length,
 
       classDates,
 
       count: students.length,
 
       summary: {
-        totalStudents:
-          students.length,
+        totalStudents: students.length,
 
         averageAttendance,
 
-        attendance75Plus,
+        attendance75Plus: students.filter(
+          (student) => student.percentage >= 75
+        ).length,
 
-        certificateAllowed:
-          certificateAllowedCount,
+        certificateAllowed: students.filter(
+          (student) => student.certificateAllowed
+        ).length,
       },
 
       students,
     });
-
   } catch (error) {
     console.error(
       "Get club attendance details error:",
@@ -640,8 +571,7 @@ export const getClubAttendanceDetails = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message:
-        "Failed to load detailed attendance",
+      message: "Failed to load detailed attendance",
     });
   }
 };
@@ -653,10 +583,6 @@ export const getClubAttendanceDetails = async (req, res) => {
 
 export const getStudentAttendance = async (req, res) => {
   try {
-    // -----------------------------------------------------
-    // CHECK LOGGED-IN USER
-    // -----------------------------------------------------
-
     if (!req.userId) {
       return res.status(401).json({
         success: false,
@@ -664,13 +590,11 @@ export const getStudentAttendance = async (req, res) => {
       });
     }
 
-    // -----------------------------------------------------
-    // FIND STUDENT PROFILE
-    // -----------------------------------------------------
-
     const student = await StudentProfile.findOne({
       userId: req.userId,
-    });
+    })
+      .select("_id")
+      .lean();
 
     if (!student) {
       return res.status(404).json({
@@ -679,24 +603,24 @@ export const getStudentAttendance = async (req, res) => {
       });
     }
 
-    // -----------------------------------------------------
-    // GET ALL ATTENDANCE RECORDS FOR THIS STUDENT
-    // -----------------------------------------------------
-
     const records = await Attendance.find({
       studentId: student._id,
     })
+      .select("clubId attendanceDate status markedAt submittedAt")
       .populate({
         path: "clubId",
         select: "name code",
       })
       .sort({
         attendanceDate: 1,
-      });
+      })
+      .lean();
 
     // -----------------------------------------------------
     // GROUP ATTENDANCE CLUB-WISE
     // -----------------------------------------------------
+
+    const getDayName = createDayNameLookup();
 
     const clubMap = new Map();
 
@@ -705,9 +629,8 @@ export const getStudentAttendance = async (req, res) => {
         return;
       }
 
-      const clubId = record.clubId._id.toString();
+      const clubId = String(record.clubId._id);
 
-      // Create club entry
       if (!clubMap.has(clubId)) {
         clubMap.set(clubId, {
           clubId: record.clubId._id,
@@ -726,27 +649,7 @@ export const getStudentAttendance = async (req, res) => {
 
       const club = clubMap.get(clubId);
 
-      // ---------------------------------------------------
-      // DATE
-      // ---------------------------------------------------
-
-      const dateObject = new Date(record.attendanceDate);
-
-      const date = dateObject
-        .toISOString()
-        .split("T")[0];
-
-      const day = dateObject.toLocaleDateString(
-        "en-IN",
-        {
-          weekday: "long",
-          timeZone: "UTC",
-        }
-      );
-
-      // ---------------------------------------------------
-      // ATTENDANCE COUNT
-      // ---------------------------------------------------
+      const date = toDateKey(record.attendanceDate);
 
       club.totalClasses += 1;
 
@@ -758,83 +661,45 @@ export const getStudentAttendance = async (req, res) => {
         club.absentClasses += 1;
       }
 
-      // ---------------------------------------------------
-      // DATE-WISE ATTENDANCE
-      // ---------------------------------------------------
-
+      // Records are already sorted by date
       club.attendanceHistory.push({
         date,
-        day,
+        day: getDayName(date),
         status: record.status,
         markedAt: record.markedAt || null,
         submittedAt: record.submittedAt || null,
       });
     });
 
-    // -----------------------------------------------------
-    // CALCULATE PERCENTAGE
-    // -----------------------------------------------------
+    const attendance = Array.from(clubMap.values()).map(
+      (club) => {
+        club.percentage = toPercentage(
+          club.attendedClasses,
+          club.totalClasses
+        );
 
-    const attendance = Array.from(
-      clubMap.values()
-    ).map((club) => {
-      club.percentage =
-        club.totalClasses > 0
-          ? Number(
-              (
-                (club.attendedClasses /
-                  club.totalClasses) *
-                100
-              ).toFixed(2)
-            )
-          : 0;
-
-      // Make sure history is sorted by date
-      club.attendanceHistory.sort(
-        (a, b) =>
-          new Date(a.date) -
-          new Date(b.date)
-      );
-
-      return club;
-    });
+        return club;
+      }
+    );
 
     // -----------------------------------------------------
     // OVERALL ATTENDANCE
     // -----------------------------------------------------
 
     const totalClasses = attendance.reduce(
-      (sum, club) =>
-        sum + Number(club.totalClasses || 0),
+      (sum, club) => sum + club.totalClasses,
       0
     );
 
     const attendedClasses = attendance.reduce(
-      (sum, club) =>
-        sum + Number(club.attendedClasses || 0),
+      (sum, club) => sum + club.attendedClasses,
       0
     );
 
     const absentClasses = attendance.reduce(
-      (sum, club) =>
-        sum + Number(club.absentClasses || 0),
+      (sum, club) => sum + club.absentClasses,
       0
     );
-
-    const overallPercentage =
-      totalClasses > 0
-        ? Number(
-            (
-              (attendedClasses /
-                totalClasses) *
-              100
-            ).toFixed(2)
-          )
-        : 0;
-
-    // -----------------------------------------------------
-    // RESPONSE
-    // -----------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -845,7 +710,10 @@ export const getStudentAttendance = async (req, res) => {
         attendedClasses,
         absentClasses,
         totalClasses,
-        percentage: overallPercentage,
+        percentage: toPercentage(
+          attendedClasses,
+          totalClasses
+        ),
       },
     });
   } catch (error) {
@@ -890,97 +758,115 @@ export const getConsolidatedAttendance = async (req, res) => {
       });
     }
 
-    /* -----------------------------------------------------
-       HOD SECURITY
-       ----------------------------------------------------- */
+    if (!isValidId(clubId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club",
+      });
+    }
 
-    let departmentFilter = {};
+    if (!canAccessClub(req.user, clubId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can view attendance only for your own club",
+      });
+    }
 
-    if (req.user.role === "HOD") {
-      if (!req.user.departmentId) {
-        return res.status(400).json({
-          success: false,
-          message: "Department is not assigned to this HOD",
-        });
-      }
-
-      departmentFilter = {
-        "student.departmentId": req.user.departmentId,
-      };
+    if (
+      req.user.role === "HOD" &&
+      !req.user.departmentId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Department is not assigned to this HOD",
+      });
     }
 
     /* -----------------------------------------------------
-       Get all attendance records
+       Attendance records (small fields only)
        ----------------------------------------------------- */
 
     const records = await Attendance.find({
       clubId,
     })
-      .populate({
-        path: "studentId",
-        populate: [
-          {
-            path: "departmentId",
-            select: "code name",
-          },
-          {
-            path: "userId",
-            select: "name email phone profilePhoto",
-          },
-        ],
-      })
+      .select("studentId attendanceDate status")
       .sort({
         attendanceDate: 1,
-      });
+      })
+      .lean();
 
     /* -----------------------------------------------------
-       Remove invalid / department restricted records
+       Load each student once instead of once per record
        ----------------------------------------------------- */
 
-    const filteredRecords = records.filter((record) => {
-      if (!record.studentId) {
-        return false;
-      }
-
-      if (req.user.role === "HOD") {
-        return (
-          record.studentId.departmentId &&
-          record.studentId.departmentId._id.toString() ===
-            req.user.departmentId.toString()
-        );
-      }
-
-      return true;
-    });
-
-    /* -----------------------------------------------------
-       Find all submitted class dates
-       ----------------------------------------------------- */
-
-    const classDates = [
+    const studentIds = [
       ...new Set(
-        filteredRecords.map((record) =>
-          new Date(record.attendanceDate)
-            .toISOString()
-            .split("T")[0]
-        )
+        records
+          .filter((record) => record.studentId)
+          .map((record) => String(record.studentId))
       ),
     ];
 
-    const totalClasses = classDates.length;
+    const studentQuery = {
+      _id: {
+        $in: studentIds,
+      },
+    };
+
+    // HOD SECURITY: only students of the HOD's department
+    if (req.user.role === "HOD") {
+      studentQuery.departmentId = req.user.departmentId;
+    }
+
+    const studentProfiles =
+      studentIds.length > 0
+        ? await StudentProfile.find(studentQuery)
+            .select(STUDENT_FIELDS)
+            .populate(STUDENT_POPULATE)
+            .lean()
+        : [];
+
+    const profileMap = new Map(
+      studentProfiles.map((student) => [
+        String(student._id),
+        student,
+      ])
+    );
 
     /* -----------------------------------------------------
        Consolidate student attendance
        ----------------------------------------------------- */
 
-    const studentMap = new Map();
+    const classDateSet = new Set();
 
-    filteredRecords.forEach((record) => {
-      const student = record.studentId;
-      const studentId = student._id.toString();
+    const attendedMap = new Map();
 
-      if (!studentMap.has(studentId)) {
-        studentMap.set(studentId, {
+    records.forEach((record) => {
+      const studentId = String(record.studentId || "");
+
+      // Deleted student, or outside the HOD's department
+      if (!profileMap.has(studentId)) {
+        return;
+      }
+
+      classDateSet.add(toDateKey(record.attendanceDate));
+
+      attendedMap.set(
+        studentId,
+        (attendedMap.get(studentId) || 0) +
+          (record.status === "PRESENT" ? 1 : 0)
+      );
+    });
+
+    const classDates = Array.from(classDateSet).sort();
+
+    const totalClasses = classDates.length;
+
+    const students = Array.from(attendedMap.entries())
+      .map(([studentId, attendedClasses]) => {
+        const student = profileMap.get(studentId);
+
+        return {
           studentId: student._id,
 
           name: student.userId?.name || "",
@@ -988,13 +874,7 @@ export const getConsolidatedAttendance = async (req, res) => {
 
           registerNumber: student.registerNumber,
 
-          department: student.departmentId
-            ? {
-                _id: student.departmentId._id,
-                code: student.departmentId.code,
-                name: student.departmentId.name,
-              }
-            : null,
+          department: formatDepartment(student.departmentId),
 
           semester: student.semester,
           admissionYear: student.admissionYear,
@@ -1004,37 +884,18 @@ export const getConsolidatedAttendance = async (req, res) => {
             student.userId?.profilePhoto ||
             null,
 
-          attendedClasses: 0,
+          attendedClasses,
           totalClasses,
-          percentage: 0,
-        });
-      }
 
-      if (record.status === "PRESENT") {
-        const current = studentMap.get(studentId);
-
-        current.attendedClasses += 1;
-      }
-    });
-
-    /* -----------------------------------------------------
-       Calculate percentage
-       ----------------------------------------------------- */
-
-    const students = Array.from(studentMap.values()).map(
-      (student) => ({
-        ...student,
-
-        percentage:
-          student.totalClasses > 0
-            ? Math.round(
-                (student.attendedClasses /
-                  student.totalClasses) *
-                  100
-              )
-            : 0,
+          percentage:
+            totalClasses > 0
+              ? Math.round(
+                  (attendedClasses / totalClasses) * 100
+                )
+              : 0,
+        };
       })
-    );
+      .sort(byRegisterNumber);
 
     return res.status(200).json({
       success: true,
@@ -1087,52 +948,46 @@ export const getClubAttendanceMembers = async (req, res) => {
       });
     }
 
-    // Create date range for the selected day
-    const startDate = new Date(`${attendanceDate}T00:00:00.000Z`);
-    const endDate = new Date(`${attendanceDate}T23:59:59.999Z`);
+    const dayRange = getDayRange(attendanceDate);
 
-    if (isNaN(startDate.getTime())) {
+    if (!dayRange) {
       return res.status(400).json({
         success: false,
         message: "Invalid attendance date",
       });
     }
 
-    // Get confirmed members of this club
-    const memberships = await ClubMembership.find({
-      clubId: req.user.clubId,
-      status: "CONFIRMED",
-    }).populate({
-      path: "studentId",
-      populate: [
-        {
-          path: "departmentId",
-          select: "code name",
+    // Confirmed members + attendance already submitted for this date
+    const [memberships, existingAttendance] = await Promise.all([
+      ClubMembership.find({
+        clubId: req.user.clubId,
+        status: "CONFIRMED",
+      })
+        .select("studentId")
+        .populate({
+          path: "studentId",
+          select: STUDENT_FIELDS,
+          populate: STUDENT_POPULATE,
+        })
+        .lean(),
+
+      Attendance.find({
+        clubId: req.user.clubId,
+        attendanceDate: {
+          $gte: dayRange.startDate,
+          $lte: dayRange.endDate,
         },
-        {
-          path: "userId",
-          select: "name email phone profilePhoto",
-        },
-      ],
-    });
+      })
+        .select("studentId status")
+        .lean(),
+    ]);
 
-    // Get already submitted attendance for this date
-    const existingAttendance = await Attendance.find({
-      clubId: req.user.clubId,
-      attendanceDate: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    });
-
-    const attendanceMap = new Map();
-
-    existingAttendance.forEach((record) => {
-      attendanceMap.set(
-        record.studentId.toString(),
-        record.status
-      );
-    });
+    const attendanceMap = new Map(
+      existingAttendance.map((record) => [
+        String(record.studentId),
+        record.status,
+      ])
+    );
 
     const submitted = existingAttendance.length > 0;
 
@@ -1152,20 +1007,14 @@ export const getClubAttendanceMembers = async (req, res) => {
 
           registerNumber: student.registerNumber,
 
-          department: student.departmentId
-            ? {
-                _id: student.departmentId._id,
-                code: student.departmentId.code,
-                name: student.departmentId.name,
-              }
-            : null,
+          department: formatDepartment(student.departmentId),
 
           semester: student.semester,
           admissionYear: student.admissionYear,
           photoUrl: student.photoUrl || user?.profilePhoto || null,
 
           status:
-            attendanceMap.get(student._id.toString()) || null,
+            attendanceMap.get(String(student._id)) || null,
         };
       });
 
@@ -1208,7 +1057,7 @@ export const submitClubAttendance = async (req, res) => {
       });
     }
 
-    const { attendanceDate, attendance } = req.body;
+    const { attendanceDate, attendance } = req.body || {};
 
     if (!attendanceDate) {
       return res.status(400).json({
@@ -1224,95 +1073,47 @@ export const submitClubAttendance = async (req, res) => {
       });
     }
 
-    const startDate = new Date(`${attendanceDate}T00:00:00.000Z`);
-    const endDate = new Date(`${attendanceDate}T23:59:59.999Z`);
+    const dayRange = getDayRange(attendanceDate);
 
-    if (isNaN(startDate.getTime())) {
+    if (!dayRange) {
       return res.status(400).json({
         success: false,
         message: "Invalid attendance date",
       });
     }
 
-    /* -----------------------------------------------------
-       Get all confirmed members of this club
-       ----------------------------------------------------- */
-
-    const memberships = await ClubMembership.find({
-      clubId: req.user.clubId,
-      status: "CONFIRMED",
-    }).select("studentId");
-
-    const confirmedStudentIds = new Set(
-      memberships.map((membership) =>
-        membership.studentId.toString()
-      )
-    );
-
-    /* -----------------------------------------------------
-       Check that every submitted student belongs to club
-       ----------------------------------------------------- */
-
-    for (const item of attendance) {
-      if (!item.studentId || !item.status) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid attendance data",
-        });
-      }
-
-      if (!["PRESENT", "ABSENT"].includes(item.status)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid attendance status for student ${item.studentId}`,
-        });
-      }
-
-      if (!confirmedStudentIds.has(item.studentId.toString())) {
-        return res.status(403).json({
-          success: false,
-          message: "Invalid student in attendance list",
-        });
-      }
-    }
-
-    /* -----------------------------------------------------
-       Make sure every confirmed member is included
-       ----------------------------------------------------- */
-
-    if (attendance.length !== confirmedStudentIds.size) {
+    // Submitted attendance is locked, so a future date would be
+    // a permanent mistake. One day of slack covers time zones.
+    if (
+      dayRange.startDate.getTime() >
+      Date.now() + 24 * 60 * 60 * 1000
+    ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Attendance must be marked for all confirmed club members",
+        message: "Attendance cannot be marked for a future date",
       });
     }
 
-    const submittedStudentIds = new Set(
-      attendance.map((item) => item.studentId.toString())
-    );
-
-    for (const studentId of confirmedStudentIds) {
-      if (!submittedStudentIds.has(studentId)) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Attendance must be marked for every confirmed club member",
-        });
-      }
-    }
-
     /* -----------------------------------------------------
-       Check whether attendance was already submitted
+       Confirmed members + existing attendance for this date
        ----------------------------------------------------- */
 
-    const existingAttendance = await Attendance.findOne({
-      clubId: req.user.clubId,
-      attendanceDate: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    });
+    const [memberships, existingAttendance] = await Promise.all([
+      ClubMembership.find({
+        clubId: req.user.clubId,
+        status: "CONFIRMED",
+      })
+        .select("studentId")
+        .lean(),
+
+      Attendance.exists({
+        clubId: req.user.clubId,
+        attendanceDate: {
+          $gte: dayRange.startDate,
+          $lte: dayRange.endDate,
+        },
+      }),
+    ]);
 
     if (existingAttendance) {
       return res.status(409).json({
@@ -1322,18 +1123,76 @@ export const submitClubAttendance = async (req, res) => {
       });
     }
 
+    const confirmedStudentIds = new Set(
+      memberships.map((membership) =>
+        String(membership.studentId)
+      )
+    );
+
+    /* -----------------------------------------------------
+       Check that every submitted student belongs to club
+       ----------------------------------------------------- */
+
+    const submittedStudentIds = new Set();
+
+    for (const item of attendance) {
+      if (
+        !item ||
+        !isValidId(item.studentId) ||
+        typeof item.status !== "string"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid attendance data",
+        });
+      }
+
+      if (!["PRESENT", "ABSENT"].includes(item.status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid attendance status",
+        });
+      }
+
+      if (!confirmedStudentIds.has(item.studentId)) {
+        return res.status(403).json({
+          success: false,
+          message: "Invalid student in attendance list",
+        });
+      }
+
+      submittedStudentIds.add(item.studentId);
+    }
+
+    /* -----------------------------------------------------
+       Make sure every confirmed member is included once
+       ----------------------------------------------------- */
+
+    if (
+      attendance.length !== confirmedStudentIds.size ||
+      submittedStudentIds.size !== confirmedStudentIds.size
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Attendance must be marked for all confirmed club members",
+      });
+    }
+
     /* -----------------------------------------------------
        Create attendance records
        ----------------------------------------------------- */
 
+    const now = new Date();
+
     const records = attendance.map((item) => ({
       clubId: req.user.clubId,
-      attendanceDate: startDate,
+      attendanceDate: dayRange.startDate,
       studentId: item.studentId,
       status: item.status,
       markedBy: req.userId,
-      markedAt: new Date(),
-      submittedAt: new Date(),
+      markedAt: now,
+      submittedAt: now,
     }));
 
     await Attendance.insertMany(records);
@@ -1389,6 +1248,13 @@ export const viewAttendance = async (req, res) => {
       });
     }
 
+    if (!isValidId(clubId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club",
+      });
+    }
+
     if (!attendanceDate) {
       return res.status(400).json({
         success: false,
@@ -1396,18 +1262,22 @@ export const viewAttendance = async (req, res) => {
       });
     }
 
-    const startDate = new Date(
-      `${attendanceDate}T00:00:00.000Z`
-    );
+    const dayRange = getDayRange(attendanceDate);
 
-    const endDate = new Date(
-      `${attendanceDate}T23:59:59.999Z`
-    );
-
-    if (isNaN(startDate.getTime())) {
+    if (!dayRange) {
       return res.status(400).json({
         success: false,
         message: "Invalid attendance date",
+      });
+    }
+
+    if (
+      req.user.role === "HOD" &&
+      !req.user.departmentId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Department is not assigned to this HOD",
       });
     }
 
@@ -1418,41 +1288,43 @@ export const viewAttendance = async (req, res) => {
     const attendanceRecords = await Attendance.find({
       clubId,
       attendanceDate: {
-        $gte: startDate,
-        $lte: endDate,
+        $gte: dayRange.startDate,
+        $lte: dayRange.endDate,
       },
     })
+      .select("studentId status markedAt submittedAt markedBy")
       .populate({
         path: "studentId",
-        populate: [
-          {
-            path: "departmentId",
-            select: "code name",
-          },
-          {
-            path: "userId",
-            select: "name email phone profilePhoto",
-          },
-        ],
+        select: STUDENT_FIELDS,
+        populate: STUDENT_POPULATE,
       })
       .populate({
         path: "markedBy",
         select: "name email role",
       })
-      .sort({ "studentId.registerNumber": 1 });
+      .lean();
 
-    if (attendanceRecords.length === 0) {
-      return res.status(200).json({
-        success: true,
-        attendanceDate,
-        submitted: false,
-        count: 0,
-        students: [],
-      });
-    }
+    const submitted = attendanceRecords.length > 0;
 
     const students = attendanceRecords
-      .filter((record) => record.studentId)
+      .filter((record) => {
+        const student = record.studentId;
+
+        if (!student) {
+          return false;
+        }
+
+        // HOD SECURITY: only students of the HOD's department
+        if (req.user.role === "HOD") {
+          return (
+            student.departmentId &&
+            String(student.departmentId._id) ===
+              String(req.user.departmentId)
+          );
+        }
+
+        return true;
+      })
       .map((record) => {
         const student = record.studentId;
         const user = student.userId;
@@ -1465,13 +1337,7 @@ export const viewAttendance = async (req, res) => {
 
           registerNumber: student.registerNumber,
 
-          department: student.departmentId
-            ? {
-                _id: student.departmentId._id,
-                code: student.departmentId.code,
-                name: student.departmentId.name,
-              }
-            : null,
+          department: formatDepartment(student.departmentId),
 
           semester: student.semester,
           admissionYear: student.admissionYear,
@@ -1495,12 +1361,13 @@ export const viewAttendance = async (req, res) => {
               }
             : null,
         };
-      });
+      })
+      .sort(byRegisterNumber);
 
     return res.status(200).json({
       success: true,
       attendanceDate,
-      submitted: true,
+      submitted,
       count: students.length,
       students,
     });

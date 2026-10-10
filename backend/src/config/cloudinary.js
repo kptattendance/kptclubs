@@ -8,19 +8,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-console.log("========== CLOUDINARY CONFIG ==========");
-console.log(
-  "Cloud name:",
-  process.env.CLOUDINARY_CLOUD_NAME
-);
-console.log(
-  "API key:",
-  process.env.CLOUDINARY_API_KEY
-);
-console.log(
-  "API secret exists:",
-  !!process.env.CLOUDINARY_API_SECRET
-);
-console.log("=======================================");
+if (
+  !process.env.CLOUDINARY_CLOUD_NAME ||
+  !process.env.CLOUDINARY_API_KEY ||
+  !process.env.CLOUDINARY_API_SECRET
+) {
+  console.warn("Cloudinary is not fully configured");
+}
 
 export default cloudinary;

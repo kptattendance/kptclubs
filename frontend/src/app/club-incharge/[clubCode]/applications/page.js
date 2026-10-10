@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import { photoThumb } from "@/lib/photo";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -1444,7 +1445,7 @@ function StudentPhoto({ student }) {
   if (student?.photoUrl) {
     return (
       <img
-        src={student.photoUrl}
+        src={photoThumb(student.photoUrl)}
         alt={student.name || "Student"}
         className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-gray-200"
       />

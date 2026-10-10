@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
+import { photoThumb } from "@/lib/photo";
 
 export default function HODAttendancePage() {
   const { getToken, isLoaded } = useAuth();
@@ -902,7 +903,7 @@ export default function HODAttendancePage() {
                                 {student.photoUrl ? (
                                   <img
                                     src={
-                                      student.photoUrl
+                                      photoThumb(student.photoUrl)
                                     }
                                     alt=""
                                     className="h-9 w-9 shrink-0 rounded-full border border-gray-200 object-cover"

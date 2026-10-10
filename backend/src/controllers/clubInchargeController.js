@@ -4,8 +4,8 @@ import ClubMembership from "../models/ClubMembership.js";
 import StudentProfile from "../models/StudentProfile.js";
 import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
-import cloudinary from "../config/cloudinary.js";
 import { clerkClient } from "@clerk/express";
+import { deleteCloudinaryImageByUrl } from "../utils/cloudinaryHelpers.js";
 
 /*
 =====================================================
@@ -187,26 +187,10 @@ export const deleteClubStudent = async (req, res) => {
     // 14. DELETE CLOUDINARY PHOTO
     // =================================================
 
-    if (studentUser.photoPublicId) {
-
-      try {
-
-        await cloudinary.uploader.destroy(
-          studentUser.photoPublicId
-        );
-
-        
-
-      } catch (error) {
-
-        console.error(
-          "Cloudinary deletion failed:",
-          error
-        );
-
-        // Continue deletion
-      }
-    }
+    await deleteCloudinaryImageByUrl(
+      studentProfile.photoUrl ||
+        studentUser.profilePhoto
+    );
 
     // =================================================
     // 15. DELETE CLERK USER
@@ -380,21 +364,30 @@ export const getClubApplications = async (req, res) => {
         path: "studentId",
         select:
           "userId registerNumber phone departmentId semester admissionYear photoUrl status",
-        populate: {
-          path: "departmentId",
-          select: "code name",
-        },
+        populate: [
+          {
+            path: "departmentId",
+            select: "code name",
+          },
+          {
+            path: "userId",
+            select: "_id name email phone profilePhoto",
+          },
+        ],
       })
       .sort({
         createdAt: -1,
-      });
+      })
+      .lean();
 
     // =================================================
     // 7. GET USER DETAILS FOR EACH STUDENT
     // =================================================
 
-    const formattedApplications = await Promise.all(
-      applications.map(async (application) => {
+    // Student user details are loaded with the query above
+    // (one query for all applications instead of one each).
+    const formattedApplications =
+      applications.map((application) => {
         const studentProfile =
           application.studentId;
 
@@ -403,11 +396,7 @@ export const getClubApplications = async (req, res) => {
         }
 
         const studentUser =
-          await User.findById(
-            studentProfile.userId
-          ).select(
-            "_id name email phone profilePhoto"
-          );
+          studentProfile.userId;
 
         if (!studentUser) {
           return null;
@@ -457,8 +446,7 @@ export const getClubApplications = async (req, res) => {
               studentProfile.departmentId,
           },
         };
-      })
-    );
+      });
 
     // Remove null entries
     const validApplications =
@@ -894,11 +882,28 @@ export const getClubStudents = async (req, res) => {
     const { clubCode } = req.params;
 
     // ================================================
+    // CHECK ROLE
+    // ================================================
+
+    const allowedRoles = [
+      "CLUB_INCHARGE",
+      "ADMIN",
+      "PRINCIPAL",
+    ];
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view club students",
+      });
+    }
+
+    // ================================================
     // CHECK CLUB
     // ================================================
 
     const club = await Club.findOne({
-      code: clubCode.toUpperCase(),
+      code: String(clubCode).toUpperCase(),
       isActive: true,
     });
 
@@ -906,6 +911,21 @@ export const getClubStudents = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Club not found",
+      });
+    }
+
+    // ================================================
+    // SECURITY CHECK
+    // Club In-charge can view only their own club
+    // ================================================
+
+    if (
+      req.user.role === "CLUB_INCHARGE" &&
+      String(req.user.clubId || "") !== String(club._id)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot view students of another club",
       });
     }
 
@@ -930,7 +950,8 @@ export const getClubStudents = async (req, res) => {
           },
         ],
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     // ================================================
     // FORMAT RESPONSE

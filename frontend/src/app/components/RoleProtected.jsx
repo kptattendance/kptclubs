@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/getCurrentUser";
 const ROLE_HOME = {
   ADMIN: "/admin",
   HOD: "/hod",
+  PRINCIPAL: "/principal",
   CLUB_INCHARGE: "/club-incharge",
   CLUB_OFFICER: "/club-officer",
   STUDENT: "/student",
@@ -29,6 +30,14 @@ export default function RoleProtected({
   } = useAuth();
 
   const [checking, setChecking] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  // A stable value, so the check does not run again
+  // every time the parent layout re-renders.
+  const allowedRolesKey = allowedRoles
+    .map((item) => String(item).trim().toUpperCase())
+    .join(",");
 
   useEffect(() => {
     if (!isLoaded) {
@@ -44,14 +53,11 @@ export default function RoleProtected({
           return;
         }
 
-        const token = await getToken();
+        const data = await getCurrentUser(getToken);
 
-        if (!token) {
-          router.replace("/unauthorized");
+        if (cancelled) {
           return;
         }
-
-        const data = await getCurrentUser(getToken);
 
         const user = data?.user;
 
@@ -69,39 +75,32 @@ export default function RoleProtected({
           return;
         }
 
-        const normalizedAllowedRoles =
-          allowedRoles.map((item) =>
-            String(item).trim().toUpperCase()
-          );
-
-        const roleAllowed =
-          normalizedAllowedRoles.includes(role);
+        const roleAllowed = allowedRolesKey
+          .split(",")
+          .includes(role);
 
         if (!roleAllowed) {
-          const correctHome =
-            ROLE_HOME[role];
+          const correctHome = ROLE_HOME[role];
 
           if (correctHome) {
             if (
               role === "CLUB_INCHARGE" ||
               role === "CLUB_OFFICER"
             ) {
-              const clubCode =
-                user.clubId?.code;
+              const clubCode = user.clubId?.code;
 
               if (clubCode) {
-                const base =
-                  role === "CLUB_INCHARGE"
-                    ? "/club-incharge"
-                    : "/club-officer";
-
                 router.replace(
-                  `${base}/${String(
+                  `${correctHome}/${String(
                     clubCode
                   ).toLowerCase()}`
                 );
+
                 return;
               }
+
+              router.replace("/unauthorized");
+              return;
             }
 
             router.replace(correctHome);
@@ -117,11 +116,9 @@ export default function RoleProtected({
             .split("/")
             .filter(Boolean);
 
-          const requestedClubCode =
-            pathParts[1];
+          const requestedClubCode = pathParts[1];
 
-          const actualClubCode =
-            user.clubId?.code;
+          const actualClubCode = user.clubId?.code;
 
           if (
             !requestedClubCode ||
@@ -131,15 +128,13 @@ export default function RoleProtected({
             return;
           }
 
-          const requestedCode =
-            String(requestedClubCode)
-              .trim()
-              .toLowerCase();
+          const requestedCode = String(requestedClubCode)
+            .trim()
+            .toLowerCase();
 
-          const actualCode =
-            String(actualClubCode)
-              .trim()
-              .toLowerCase();
+          const actualCode = String(actualClubCode)
+            .trim()
+            .toLowerCase();
 
           if (requestedCode !== actualCode) {
             const correctBase =
@@ -155,26 +150,33 @@ export default function RoleProtected({
           }
         }
 
-        if (!cancelled) {
-          setChecking(false);
-        }
+        setFailed(false);
+        setChecking(false);
       } catch (error) {
-        console.error(
-          "ROLE PROTECTION ERROR:",
-          error
-        );
+        if (cancelled) {
+          return;
+        }
+
+        const status = error?.response?.status;
 
         console.error(
-          "Response:",
-          error?.response?.data
+          "Role protection error:",
+          status || error?.message
         );
 
-        console.error(
-          "Status:",
-          error?.response?.status
-        );
+        // The server answered "not allowed"
+        if (
+          status === 401 ||
+          status === 403 ||
+          status === 404
+        ) {
+          router.replace("/unauthorized");
+          return;
+        }
 
-        router.replace("/unauthorized");
+        // Network problem or the server is waking up:
+        // let the user retry instead of sending them away.
+        setFailed(true);
       }
     };
 
@@ -190,15 +192,43 @@ export default function RoleProtected({
     router,
     pathname,
     checkClub,
-    allowedRoles,
+    allowedRolesKey,
+    attempt,
   ]);
+
+  if (failed && checking) {
+    return (
+      <main className="flex min-h-[60vh] items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-base font-semibold text-gray-900">
+            Could not reach the server
+          </p>
+
+          <p className="mt-2 text-sm text-gray-600">
+            Please check your internet connection and try again.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              setFailed(false);
+              setAttempt((value) => value + 1);
+            }}
+            className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Try again
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   if (
     !isLoaded ||
     checking
   ) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <main className="flex min-h-[60vh] items-center justify-center bg-gray-50 px-4">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
 

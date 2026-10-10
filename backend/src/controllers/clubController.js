@@ -1,6 +1,7 @@
 
 import Club from "../models/Club.js";
 import User from "../models/User.js";
+import ClubMembership from "../models/ClubMembership.js";
 
 export const getClubDashboard = async (req, res) => {
   try {
@@ -22,10 +23,10 @@ export const getClubDashboard = async (req, res) => {
     }
 
     // Count students belonging to this club
-    const studentCount = await User.countDocuments({
+    // Students are linked to a club through ClubMembership
+    const studentCount = await ClubMembership.countDocuments({
       clubId: club._id,
-      userType: "STUDENT",
-      isActive: true,
+      status: "CONFIRMED",
     });
 
     // Find club in-charge

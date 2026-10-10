@@ -9,12 +9,8 @@ import Department from "../models/Department.js";
 import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
 import { clerkClient } from "@clerk/express";
-import cloudinary from "../config/cloudinary.js";
-
-
-
-
-  import mongoose from "mongoose";
+import mongoose from "mongoose";
+import { deleteCloudinaryImageByUrl } from "../utils/cloudinaryHelpers.js";
 
 // =====================================================
 // DELETE STUDENT BY HOD
@@ -161,21 +157,10 @@ export const deleteHODStudent = async (req, res) => {
     // 12. DELETE CLOUDINARY PHOTO
     // =================================================
 
-    if (studentUser.photoPublicId) {
-      try {
-        await cloudinary.uploader.destroy(
-          studentUser.photoPublicId
-        );
-
-      } catch (error) {
-        console.error(
-          "Cloudinary deletion failed:",
-          error
-        );
-
-        // Continue deletion
-      }
-    }
+    await deleteCloudinaryImageByUrl(
+      studentProfile.photoUrl ||
+        studentUser.profilePhoto
+    );
 
     // =================================================
     // 13. DELETE CLERK USER
@@ -533,21 +518,19 @@ export const getHODDashboard = async (req, res) => {
     // DEPARTMENT STUDENTS
     // =================================================
 
-    const students =
+    // Only IDs are needed here, the dashboard shows counts
+    const departmentStudents =
       await StudentProfile.find({
         departmentId: department._id,
-        status: "ACTIVE",
       })
-      .populate(
-        "userId",
-        "name email phone profilePhoto"
-      )
-      .select(
-        "registerNumber semester admissionYear photoUrl userId"
-      );
+      .select("_id status")
+      .lean();
 
 
-    const totalStudents = students.length;
+    const totalStudents =
+      departmentStudents.filter(
+        (student) => student.status === "ACTIVE"
+      ).length;
 
 
     // =================================================
@@ -563,55 +546,57 @@ export const getHODDashboard = async (req, res) => {
       )
       .sort({
         name: 1,
-      });
+      })
+      .lean();
 
 
     // =================================================
     // CLUB-WISE DEPARTMENT STUDENT COUNT
     // =================================================
 
-    const clubStatistics = [];
+    // One grouped query for all clubs instead of
+    // one query per club.
 
-
-    for (const club of clubs) {
-
-      // Find memberships belonging to
-      // students from this HOD's department
-
-      const memberships =
-        await ClubMembership.find({
-          clubId: club._id,
-          status: "CONFIRMED",
-        })
-        .populate({
-          path: "studentId",
-          match: {
-            departmentId: department._id,
+    const memberCounts =
+      await ClubMembership.aggregate([
+        {
+          $match: {
+            status: "CONFIRMED",
+            studentId: {
+              $in: departmentStudents.map(
+                (student) => student._id
+              ),
+            },
           },
-          select: "departmentId",
-        });
+        },
+        {
+          $group: {
+            _id: "$clubId",
+            studentCount: {
+              $sum: 1,
+            },
+          },
+        },
+      ]);
 
 
-      // Remove memberships where the student
-      // belongs to another department
-
-      const departmentMembers =
-        memberships.filter(
-          (membership) =>
-            membership.studentId !== null
-        );
+    const memberCountMap = new Map(
+      memberCounts.map((item) => [
+        String(item._id),
+        item.studentCount,
+      ])
+    );
 
 
-      clubStatistics.push({
-        id: club._id,
-        code: club.code,
-        name: club.name,
-        type: club.type,
-        description: club.description || "",
-        studentCount:
-          departmentMembers.length,
-      });
-    }
+    const clubStatistics = clubs.map((club) => ({
+      id: club._id,
+      code: club.code,
+      name: club.name,
+      type: club.type,
+      description: club.description || "",
+      studentCount:
+        memberCountMap.get(String(club._id)) || 0,
+    }));
 
 
     // =================================================
@@ -737,10 +722,16 @@ export const getHODApplications = async (req, res) => {
           match: {
             departmentId: user.departmentId,
           },
-          populate: {
-            path: "departmentId",
-            select: "code name",
-          },
+          populate: [
+            {
+              path: "departmentId",
+              select: "code name",
+            },
+            {
+              path: "userId",
+              select: "_id name email",
+            },
+          ],
         })
         .populate(
           "clubId",
@@ -748,7 +739,8 @@ export const getHODApplications = async (req, res) => {
         )
         .sort({
           createdAt: -1,
-        });
+        })
+        .lean();
 
     // Remove applications where student
     // did not belong to HOD's department.
@@ -764,17 +756,15 @@ export const getHODApplications = async (req, res) => {
     // ================================================
 
     const formattedApplications =
-      await Promise.all(
+      // Student user details are loaded with the query above
         filteredApplications.map(
-          async (membership) => {
+          (membership) => {
 
             const student =
               membership.studentId;
 
             const studentUser =
-              await User.findById(
-                student.userId
-              );
+              student.userId;
 
             return {
               membershipId:
@@ -821,8 +811,7 @@ export const getHODApplications = async (req, res) => {
               club: membership.clubId,
             };
           }
-        )
-      );
+        );
 
     return res.status(200).json({
       success: true,

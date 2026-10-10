@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import Link from "next/link";
+import { photoThumb } from "@/lib/photo";
 
 export default function StudentDashboard() {
   const { getToken, isLoaded } = useAuth();
@@ -258,7 +259,7 @@ export default function StudentDashboard() {
             {student?.photoUrl ? (
 
               <img
-                src={student.photoUrl}
+                src={photoThumb(student.photoUrl)}
                 alt={student.name}
                 className="h-14 w-14 rounded-2xl object-cover"
               />

@@ -30,6 +30,7 @@ const requireRole = (...allowedRoles) => {
 
       // Make the MongoDB user available to controllers
       req.user = user;
+      req.userId = user._id;
 
       next();
     } catch (error) {

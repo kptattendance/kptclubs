@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
 import Swal from "sweetalert2";
+import { photoThumb } from "@/lib/photo";
 
 // =====================================================
 // CLUB MEMBERSHIP STATUS
@@ -405,13 +406,22 @@ const cancelEdit = () => {
 // =====================================================
 
 const deleteStudent = async (student) => {
+  // The name is typed by the student, so it must never be
+  // inserted into the dialog as HTML.
+  const safeName = String(student.name || "this student")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
   const result = await Swal.fire({
     title: "Delete Student?",
     html: `
       <div style="font-size:14px;color:#6b7280;">
         Are you sure you want to delete
         <strong style="color:#111827;">
-          ${student.name || "this student"}
+          ${safeName}
         </strong>?
         <br />
         <span style="font-size:13px;">
@@ -1026,7 +1036,7 @@ const deleteStudent = async (student) => {
 
     {student.profilePhoto ? (
       <img
-        src={student.profilePhoto}
+        src={photoThumb(student.profilePhoto)}
         alt={student.name || "Student"}
         className="h-10 w-10 shrink-0 rounded-full border border-gray-200 object-cover"
       />

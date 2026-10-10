@@ -89,6 +89,12 @@ clubMembershipSchema.index(
   { unique: true }
 );
 
+// Fast lookup of a club's confirmed / pending members
+clubMembershipSchema.index({
+  clubId: 1,
+  status: 1,
+});
+
 const ClubMembership = mongoose.model(
   "ClubMembership",
   clubMembershipSchema

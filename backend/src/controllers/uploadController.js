@@ -2,8 +2,6 @@ import cloudinary from "../config/cloudinary.js";
 
 export const uploadProfilePhoto = async (req, res) => {
   try {
-
-
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -11,20 +9,24 @@ export const uploadProfilePhoto = async (req, res) => {
       });
     }
 
-
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: "kpt-club/users",
           resource_type: "image",
+          allowed_formats: ["jpg", "jpeg", "png", "webp"],
+          // Keep stored photos small so lists load quickly
+          transformation: [
+            {
+              width: 1000,
+              height: 1000,
+              crop: "limit",
+              quality: "auto",
+            },
+          ],
         },
         (error, result) => {
           if (error) {
-            console.error(
-              "Cloudinary callback error:",
-              error
-            );
-
             reject(error);
             return;
           }
@@ -36,18 +38,15 @@ export const uploadProfilePhoto = async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-   
     return res.status(200).json({
       success: true,
       photoUrl: result.secure_url,
     });
-
   } catch (error) {
     console.error(
-      "========== CLOUDINARY ERROR =========="
+      "Cloudinary upload error:",
+      error?.message || error
     );
-
-    console.error(error);
 
     return res.status(500).json({
       success: false,
