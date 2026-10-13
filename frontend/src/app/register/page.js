@@ -5,7 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import axios from "axios";
 import api from "@/lib/api";
 import Link from "next/link";
-import { validatePhotoFile } from "@/lib/photo";
+import { preparePhotoFile } from "@/lib/photo";
 
 export default function StudentRegisterPage() {
 
@@ -26,6 +26,9 @@ export default function StudentRegisterPage() {
 
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState("");
+
+    // Shown right beside the photo button, where the student is looking
+    const [photoError, setPhotoError] = useState("");
 
     const [form, setForm] = useState({
         name: "",
@@ -99,8 +102,27 @@ export default function StudentRegisterPage() {
     // HANDLE PHOTO
     // =====================================================
 
-    const handlePhotoChange = (e) => {
-        const file = e.target.files?.[0];
+    const handlePhotoChange = async (e) => {
+        const selectedFile = e.target.files?.[0];
+
+        // Allow choosing the same photo again
+        e.target.value = "";
+
+        if (!selectedFile) {
+            return;
+        }
+
+        // Large phone photos are reduced automatically
+        const prepared = await preparePhotoFile(selectedFile);
+
+        if (prepared.error) {
+            setPhotoError(prepared.error);
+            return;
+        }
+
+        setPhotoError("");
+
+        const file = prepared.file;
 
         if (!file) {
             setPhoto(null);
@@ -109,16 +131,6 @@ export default function StudentRegisterPage() {
         }
 
 
-        // Check file type
-
-        // JPG, PNG or WEBP, maximum 2 MB
-
-        const photoProblem = validatePhotoFile(file);
-
-        if (photoProblem) {
-            setError(photoProblem);
-            return;
-        }
 
 
         setError("");
@@ -235,8 +247,12 @@ const handleSubmit = async (e) => {
         // =================================================
 
         if (!photo) {
+            setPhotoError(
+                "Please choose your photo before submitting"
+            );
+
             throw new Error(
-                "Student photo is required"
+                "Student photo is required. Please choose a photo at the top of this form"
             );
         }
 
@@ -481,14 +497,20 @@ const handleSubmit = async (e) => {
                             <input
                                 id="photo"
                                 type="file"
-                                accept="image/jpeg,image/png,image/webp"
+                                accept="image/*"
                                 onChange={handlePhotoChange}
                                 className="hidden"
                             />
 
                             <p className="mt-2 text-xs text-slate-400">
-                                JPG, PNG or WEBP · Maximum 2 MB
+                                Any clear photo from your phone or computer.
                             </p>
+
+                            {photoError && (
+                                <p className="mt-3 w-full rounded-lg bg-red-50 px-3 py-2 text-center text-sm font-medium text-red-700">
+                                    {photoError}
+                                </p>
+                            )}
 
                         </div>
 

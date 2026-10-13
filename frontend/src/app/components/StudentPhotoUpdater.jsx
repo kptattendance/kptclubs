@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 
 import api from "@/lib/api";
-import { validatePhotoFile } from "@/lib/photo";
+import { preparePhotoFile } from "@/lib/photo";
 
 // Photos saved before the storage change can no longer be shown
 const isOldPhoto = (url) =>
@@ -26,23 +26,26 @@ export default function StudentPhotoUpdater({
   const needsPhoto = !photoUrl || isOldPhoto(photoUrl);
 
   const handleFile = async (event) => {
-    const file = event.target.files?.[0];
+    const selectedFile = event.target.files?.[0];
 
     // Allow choosing the same file again later
     event.target.value = "";
 
-    if (!file) {
+    if (!selectedFile) {
       return;
     }
 
     setSuccess("");
 
-    const problem = validatePhotoFile(file);
+    // Large phone photos are reduced automatically
+    const prepared = await preparePhotoFile(selectedFile);
 
-    if (problem) {
-      setError(problem);
+    if (prepared.error) {
+      setError(prepared.error);
       return;
     }
+
+    const file = prepared.file;
 
     try {
       setUploading(true);
@@ -102,7 +105,7 @@ export default function StudentPhotoUpdater({
             {needsPhoto
               ? "Your photo is missing. Upload a clear passport-size photo. It is printed on your certificate."
               : "You can replace your photo at any time."}{" "}
-            JPG, PNG or WEBP · Maximum 2 MB
+            Any clear photo from your phone or computer.
           </p>
         </div>
 
@@ -122,7 +125,7 @@ export default function StudentPhotoUpdater({
         <input
           ref={fileInput}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           onChange={handleFile}
           className="hidden"
         />
