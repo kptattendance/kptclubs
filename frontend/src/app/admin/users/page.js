@@ -269,7 +269,12 @@ export default function AdminUsersPage() {
     // DEPARTMENT
     // ---------------------------------------------------
 
-    if (departmentFilter !== "ALL") {
+    if (departmentFilter === "NONE") {
+      // Users with no department (shown as "-")
+      result = result.filter(
+        (user) => !user.departmentId
+      );
+    } else if (departmentFilter !== "ALL") {
       result = result.filter((user) => {
         return (
           user.departmentId?._id ===
@@ -284,7 +289,12 @@ export default function AdminUsersPage() {
     // SEMESTER
     // ---------------------------------------------------
 
-    if (semesterFilter !== "ALL") {
+    if (semesterFilter === "NONE") {
+      // Users with no semester (shown as "-")
+      result = result.filter(
+        (user) => getSemesterValue(user) === ""
+      );
+    } else if (semesterFilter !== "ALL") {
       result = result.filter((user) => {
         return (
           getSemesterValue(user) ===
@@ -657,18 +667,24 @@ export default function AdminUsersPage() {
               onChange={
                 setDepartmentFilter
               }
-              options={departments.map(
-                (department) => ({
-                  value:
-                    department._id ||
-                    department.code,
-                  label: `${department.code}${
-                    department.name
-                      ? ` - ${department.name}`
-                      : ""
-                  }`,
-                })
-              )}
+              options={[
+                {
+                  value: "NONE",
+                  label: "No department ( - )",
+                },
+                ...departments.map(
+                  (department) => ({
+                    value:
+                      department._id ||
+                      department.code,
+                    label: `${department.code}${
+                      department.name
+                        ? ` - ${department.name}`
+                        : ""
+                    }`,
+                  })
+                ),
+              ]}
             />
 
             {/* SEMESTER */}
@@ -680,11 +696,17 @@ export default function AdminUsersPage() {
                 setSemesterFilter
               }
               options={[
-                1, 2, 3, 4, 5, 6,
-              ].map((semester) => ({
-                value: String(semester),
-                label: `Semester ${semester}`,
-              }))}
+                {
+                  value: "NONE",
+                  label: "No semester ( - )",
+                },
+                ...[1, 2, 3, 4, 5, 6].map(
+                  (semester) => ({
+                    value: String(semester),
+                    label: `Semester ${semester}`,
+                  })
+                ),
+              ]}
             />
 
             {/* ROLE */}
