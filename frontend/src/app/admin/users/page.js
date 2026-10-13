@@ -83,6 +83,122 @@ export default function AdminUsersPage() {
   };
 
   // =====================================================
+  // MULTIPLE SELECT + DELETE
+  // =====================================================
+
+  const [selectedIds, setSelectedIds] = useState(
+    () => new Set()
+  );
+
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState("");
+  const [bulkMessage, setBulkMessage] = useState("");
+
+  const toggleSelected = (userId) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Only users that are visible with the current filters
+  // are ever deleted, even if more were ticked earlier.
+  const handleBulkDelete = async (usersToDelete) => {
+    if (usersToDelete.length === 0 || bulkDeleting) {
+      return;
+    }
+
+    const staffCount = usersToDelete.filter(
+      (user) => user.role !== "STUDENT"
+    ).length;
+
+    const confirmed = window.confirm(
+      `Delete ${usersToDelete.length} selected user(s)?\n\n` +
+        (staffCount > 0
+          ? `WARNING: ${staffCount} of them are NOT students (HOD, Club In-charge or Admin).\n\n`
+          : "") +
+        "Their attendance, certificates, club memberships and sign-in accounts will also be deleted. This cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    setBulkDeleting(true);
+    setBulkMessage("");
+    setError("");
+
+    const deletedIds = [];
+    const failures = [];
+
+    for (let i = 0; i < usersToDelete.length; i++) {
+      const user = usersToDelete[i];
+
+      setBulkProgress(
+        `Deleting ${i + 1} of ${usersToDelete.length}...`
+      );
+
+      try {
+        // A token is valid for one minute, so get one per user
+        const token = await getToken();
+
+        await api.delete(`/api/users/${user._id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        deletedIds.push(user._id);
+      } catch (error) {
+        failures.push(
+          `${user.name || user.email}: ${
+            error.response?.data?.message ||
+            "Failed to delete"
+          }`
+        );
+      }
+    }
+
+    setUsers((currentUsers) =>
+      currentUsers.filter(
+        (user) => !deletedIds.includes(user._id)
+      )
+    );
+
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      deletedIds.forEach((id) => next.delete(id));
+
+      return next;
+    });
+
+    setBulkProgress("");
+    setBulkDeleting(false);
+
+    setBulkMessage(
+      `${deletedIds.length} user(s) deleted.`
+    );
+
+    if (failures.length > 0) {
+      setError(
+        `${failures.length} user(s) could not be deleted. ${failures
+          .slice(0, 3)
+          .join(" | ")}`
+      );
+    }
+  };
+
+  // =====================================================
   // LOAD USERS
   // =====================================================
 
@@ -402,6 +518,34 @@ export default function AdminUsersPage() {
     sortBy,
     sortOrder,
   ]);
+
+  // =====================================================
+  // SELECTED USERS IN THE CURRENT LIST
+  // =====================================================
+
+  const selectedUsers = filteredUsers.filter((user) =>
+    selectedIds.has(user._id)
+  );
+
+  const allVisibleSelected =
+    filteredUsers.length > 0 &&
+    selectedUsers.length === filteredUsers.length;
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      filteredUsers.forEach((user) => {
+        if (allVisibleSelected) {
+          next.delete(user._id);
+        } else {
+          next.add(user._id);
+        }
+      });
+
+      return next;
+    });
+  };
 
   // =====================================================
   // CLEAR FILTERS
@@ -847,6 +991,48 @@ export default function AdminUsersPage() {
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
+          {/* SELECTION BAR */}
+
+          {(selectedUsers.length > 0 ||
+            bulkDeleting ||
+            bulkMessage) && (
+            <div className="flex flex-col gap-3 border-b border-red-100 bg-red-50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-semibold text-slate-800">
+                {bulkDeleting
+                  ? bulkProgress
+                  : selectedUsers.length > 0
+                    ? `${selectedUsers.length} user(s) selected`
+                    : bulkMessage}
+              </p>
+
+              {selectedUsers.length > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={bulkDeleting}
+                    onClick={clearSelection}
+                    className="flex-1 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-50 sm:flex-none"
+                  >
+                    Clear Selection
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={bulkDeleting}
+                    onClick={() =>
+                      handleBulkDelete(selectedUsers)
+                    }
+                    className="flex-1 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                  >
+                    {bulkDeleting
+                      ? "Deleting..."
+                      : `Delete Selected (${selectedUsers.length})`}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* TABLE HEADER */}
 
           <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -947,6 +1133,17 @@ export default function AdminUsersPage() {
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
 
+                      <th className="w-10 px-4 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all users in this list"
+                          checked={allVisibleSelected}
+                          disabled={bulkDeleting}
+                          onChange={toggleSelectAllVisible}
+                          className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-blue-600"
+                        />
+                      </th>
+
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         #
                       </th>
@@ -1002,6 +1199,23 @@ export default function AdminUsersPage() {
                           key={user._id}
                           className="border-b border-slate-100 transition hover:bg-blue-50/40"
                         >
+
+                          {/* SELECT */}
+
+                          <td className="w-10 px-4 py-4">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${user.name || "user"}`}
+                              checked={selectedIds.has(
+                                user._id
+                              )}
+                              disabled={bulkDeleting}
+                              onChange={() =>
+                                toggleSelected(user._id)
+                              }
+                              className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-blue-600"
+                            />
+                          </td>
 
                           {/* SL NO */}
 
