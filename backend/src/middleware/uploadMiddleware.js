@@ -1,7 +1,11 @@
 import multer from "multer";
 
+// Must match the limit shown to students on the website
+export const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
+  "image/jpg",
   "image/png",
   "image/webp",
 ];
@@ -11,7 +15,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: MAX_PHOTO_BYTES,
     files: 1,
   },
   fileFilter: (req, file, callback) => {

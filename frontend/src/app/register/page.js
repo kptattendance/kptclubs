@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import axios from "axios";
 import api from "@/lib/api";
 import Link from "next/link";
+import { validatePhotoFile } from "@/lib/photo";
 
 export default function StudentRegisterPage() {
 
@@ -110,16 +111,12 @@ export default function StudentRegisterPage() {
 
         // Check file type
 
-        if (!file.type.startsWith("image/")) {
-            setError("Please select an image file");
-            return;
-        }
+        // JPG, PNG or WEBP, maximum 2 MB
 
+        const photoProblem = validatePhotoFile(file);
 
-        // Maximum 5 MB
-
-        if (file.size > 2 * 1024 * 1024) {
-            setError("Photo size must be less than 5 MB");
+        if (photoProblem) {
+            setError(photoProblem);
             return;
         }
 
@@ -484,13 +481,13 @@ const handleSubmit = async (e) => {
                             <input
                                 id="photo"
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp"
                                 onChange={handlePhotoChange}
                                 className="hidden"
                             />
 
                             <p className="mt-2 text-xs text-slate-400">
-                                JPG, JPEG or PNG · Maximum 2 MB
+                                JPG, PNG or WEBP · Maximum 2 MB
                             </p>
 
                         </div>

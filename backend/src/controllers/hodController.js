@@ -10,7 +10,7 @@ import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
 import { clerkClient } from "@clerk/express";
 import mongoose from "mongoose";
-import { deleteCloudinaryImageByUrl } from "../utils/cloudinaryHelpers.js";
+import { deletePhotoByUrl } from "../utils/photoStorage.js";
 
 // =====================================================
 // DELETE STUDENT BY HOD
@@ -154,10 +154,10 @@ export const deleteHODStudent = async (req, res) => {
 
 
     // =================================================
-    // 12. DELETE CLOUDINARY PHOTO
+    // 12. DELETE STORED PHOTO
     // =================================================
 
-    await deleteCloudinaryImageByUrl(
+    await deletePhotoByUrl(
       studentProfile.photoUrl ||
         studentUser.profilePhoto
     );

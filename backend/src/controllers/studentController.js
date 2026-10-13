@@ -8,9 +8,9 @@ import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
 import { clerkClient } from "@clerk/express";
 import {
-  isOwnCloudinaryUrl,
-  deleteCloudinaryImageByUrl,
-} from "../utils/cloudinaryHelpers.js";
+  isOwnPhotoUrl,
+  deletePhotoByUrl,
+} from "../utils/photoStorage.js";
 
 const isValidId = (value) =>
   typeof value === "string" &&
@@ -98,7 +98,7 @@ export const deleteStudent = async (req, res) => {
       }
     }
 
-    await deleteCloudinaryImageByUrl(photoUrl);
+    await deletePhotoByUrl(photoUrl);
 
     return res.status(200).json({
       success: true,
@@ -240,7 +240,7 @@ export const registerStudent = async (req, res) => {
     }
 
     // The photo must be one uploaded through this application
-    if (!isOwnCloudinaryUrl(photoUrl)) {
+    if (!isOwnPhotoUrl(photoUrl)) {
       return badRequest(
         "Invalid photo. Please upload the photo again"
       );

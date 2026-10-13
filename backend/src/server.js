@@ -95,7 +95,7 @@ app.use((error, req, res, next) => {
       success: false,
       message:
         error.code === "LIMIT_FILE_SIZE"
-          ? "Photo must be smaller than 5 MB"
+          ? "Photo must be smaller than 2 MB"
           : "Invalid file upload",
     });
   }

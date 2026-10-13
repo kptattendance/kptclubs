@@ -5,8 +5,7 @@ import StudentProfile from "../models/StudentProfile.js";
 import ClubMembership from "../models/ClubMembership.js";
 import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
-import cloudinary from "../config/cloudinary.js";
-import { getCloudinaryPublicId } from "../utils/cloudinaryHelpers.js";
+import { deletePhotoByUrl } from "../utils/photoStorage.js";
 
 import { clerkClient } from "@clerk/express";
 
@@ -754,26 +753,8 @@ export const updateUser = async (
     // Handle photo replacement
     // --------------------------------------------------------
 
-    if (
-      photoPublicId &&
-      photoPublicId !== user.photoPublicId &&
-      user.photoPublicId
-    ) {
-
-      try {
-
-        await cloudinary.uploader.destroy(
-          user.photoPublicId
-        );
-
-      } catch (error) {
-
-        console.error(
-          "Old Cloudinary photo deletion failed:",
-          error
-        );
-      }
-    }
+    // Photos are replaced through the upload endpoints,
+    // which delete the previous file themselves.
 
 
     // --------------------------------------------------------
@@ -1006,59 +987,13 @@ export const deleteUser = async (req, res) => {
     const userRole = user.role;
 
     // ========================================================
-    // HELPER - DELETE CLOUDINARY FILE FROM URL
+    // HELPER - DELETE STORED FILE FROM URL
     // ========================================================
 
-    const deleteCloudinaryFromUrl = async (
-      fileUrl,
-      label
-    ) => {
-      if (!fileUrl) {
-        return;
-      }
-
-      // Only process Cloudinary URLs
-      if (
-        typeof fileUrl !== "string" ||
-        !fileUrl.includes("res.cloudinary.com")
-      ) {
-        console.log(
-          `Skipping ${label}: not a Cloudinary URL`
-        );
-
-        return;
-      }
-
-      try {
-        const publicId =
-          getCloudinaryPublicId(fileUrl);
-
-        if (!publicId) {
-        
-          return;
-        }
-
-      
-        const result =
-          await cloudinary.uploader.destroy(
-            publicId,
-            {
-              resource_type: "image",
-            }
-          );
-
-     
-
-      } catch (cloudinaryError) {
-        console.error(
-          `Cloudinary ${label} deletion failed:`,
-          cloudinaryError?.message ||
-            cloudinaryError
-        );
-
-        // Do not stop complete user deletion
-      }
-    };
+    // Never throws, and ignores anything that is not
+    // stored in this project's photo bucket.
+    const deleteStoredFile = (fileUrl) =>
+      deletePhotoByUrl(fileUrl);
 
     // ========================================================
     // STUDENT DATA
@@ -1104,7 +1039,7 @@ export const deleteUser = async (req, res) => {
       
 
         // ====================================================
-        // DELETE CERTIFICATE FILES FROM CLOUDINARY
+        // DELETE CERTIFICATE FILES FROM STORAGE
         // ====================================================
 
         for (
@@ -1113,7 +1048,7 @@ export const deleteUser = async (req, res) => {
           if (
             certificate.certificateUrl
           ) {
-            await deleteCloudinaryFromUrl(
+            await deleteStoredFile(
               certificate.certificateUrl,
               `certificate ${certificate._id}`
             );
@@ -1153,10 +1088,10 @@ export const deleteUser = async (req, res) => {
 
        
         // ====================================================
-        // DELETE STUDENT PHOTO FROM CLOUDINARY
+        // DELETE STUDENT PHOTO FROM STORAGE
         // ====================================================
 
-        await deleteCloudinaryFromUrl(
+        await deleteStoredFile(
           studentPhotoUrl,
           "student profile photo"
         );
@@ -1189,7 +1124,7 @@ export const deleteUser = async (req, res) => {
 
     if (user.profilePhoto) {
 
-      await deleteCloudinaryFromUrl(
+      await deleteStoredFile(
         user.profilePhoto,
         "user profile photo"
       );

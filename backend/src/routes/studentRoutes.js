@@ -8,6 +8,8 @@ import {
   deleteStudent,
 } from "../controllers/studentController.js";
 
+import { updateStudentPhoto } from "../controllers/uploadController.js";
+import upload from "../middleware/uploadMiddleware.js";
 import requireAuth from "../middleware/authMiddleware.js";
 import resolveUser from "../middleware/resolveUser.js";
 import requireRole from "../middleware/roleMiddleware.js";
@@ -59,6 +61,18 @@ router.post(
   registerForClub
 );
 
+
+// =====================================================
+// LOGGED-IN STUDENT REPLACES THEIR OWN PHOTO
+// =====================================================
+
+router.put(
+  "/photo",
+  requireAuth,
+  resolveUser,
+  upload.single("image"),
+  updateStudentPhoto
+);
 
 // =====================================================
 // DELETE STUDENT

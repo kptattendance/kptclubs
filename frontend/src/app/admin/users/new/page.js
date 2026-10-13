@@ -148,8 +148,8 @@ export default function AddUserPage() {
     }
 
     // Check size
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      setError("Photo must be less than 5 MB");
+    if (selectedFile.size > 2 * 1024 * 1024) {
+      setError("Photo must be less than 2 MB");
       setPhoto(null);
       setPhotoPreview("");
       return;
@@ -254,8 +254,6 @@ export default function AddUserPage() {
     try {
       setSaving(true);
 
-      const token = await getToken();
-
       // ============================================
       // STEP 1: UPLOAD PHOTO
       // ============================================
@@ -314,20 +312,40 @@ export default function AddUserPage() {
       // STEP 3: CREATE USER
       // ============================================
 
-      const response =
-        await axios.post(
+      // A sign-in token is valid for only one minute. The one
+      // fetched above may have expired while the photo was
+      // uploading, so always ask for a brand new one here and
+      // try once more if the server still rejects it.
+      const createUser = async () => {
+        const freshToken = await getToken({
+          skipCache: true,
+        });
+
+        return axios.post(
           `${API_URL}/api/users`,
           userData,
           {
             headers: {
               Authorization:
-                `Bearer ${token}`,
-
+                `Bearer ${freshToken}`,
               "Content-Type":
                 "application/json",
             },
           }
         );
+      };
+
+      let response;
+
+      try {
+        response = await createUser();
+      } catch (createError) {
+        if (createError.response?.status !== 401) {
+          throw createError;
+        }
+
+        response = await createUser();
+      }
 
     
 
@@ -594,17 +612,17 @@ export default function AddUserPage() {
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      JPG, PNG or other image format
+                      JPG, PNG or WEBP
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      Maximum file size: 5 MB
+                      Maximum file size: 2 MB
                     </p>
 
                     <input
                       id="profile-photo"
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       onChange={handlePhotoChange}
                       className="hidden"
                     />

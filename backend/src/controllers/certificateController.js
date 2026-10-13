@@ -8,7 +8,7 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { isOwnCloudinaryUrl } from "../utils/cloudinaryHelpers.js";
+import { isOwnPhotoUrl } from "../utils/photoStorage.js";
 
 // ======================================================
 // STUDENT DOWNLOAD CERTIFICATE
@@ -178,9 +178,9 @@ export const downloadStudentCertificate = async (
       student.userId?.profilePhoto ||
       null;
 
-    // Only fetch photos stored in this project's Cloudinary
-    // account: the server must never request arbitrary URLs.
-    if (isOwnCloudinaryUrl(studentPhoto)) {
+    // Only fetch photos stored in this project's own bucket:
+    // the server must never request arbitrary URLs.
+    if (isOwnPhotoUrl(studentPhoto)) {
       try {
         const photoResponse =
           await fetch(studentPhoto, {

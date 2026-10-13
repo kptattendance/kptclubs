@@ -42,7 +42,7 @@ const studentProfileSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Cloudinary URL
+    // Photo URL (Cloudflare R2)
     photoUrl: {
       type: String,
       default: "",

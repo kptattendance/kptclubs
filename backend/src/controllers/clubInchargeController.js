@@ -5,7 +5,7 @@ import StudentProfile from "../models/StudentProfile.js";
 import Attendance from "../models/Attendance.js";
 import Certificate from "../models/Certificate.js";
 import { clerkClient } from "@clerk/express";
-import { deleteCloudinaryImageByUrl } from "../utils/cloudinaryHelpers.js";
+import { deletePhotoByUrl } from "../utils/photoStorage.js";
 
 /*
 =====================================================
@@ -184,10 +184,10 @@ export const deleteClubStudent = async (req, res) => {
 
 
     // =================================================
-    // 14. DELETE CLOUDINARY PHOTO
+    // 14. DELETE STORED PHOTO
     // =================================================
 
-    await deleteCloudinaryImageByUrl(
+    await deletePhotoByUrl(
       studentProfile.photoUrl ||
         studentUser.profilePhoto
     );
