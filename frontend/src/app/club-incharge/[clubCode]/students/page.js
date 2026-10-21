@@ -1474,7 +1474,7 @@ export default function ClubStudentsPage() {
 
                         <div className="min-w-0">
 
-                          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
                             Department
                           </p>
 
@@ -1488,7 +1488,7 @@ export default function ClubStudentsPage() {
 
                         <div className="min-w-0">
 
-                          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
                             Semester
                           </p>
 

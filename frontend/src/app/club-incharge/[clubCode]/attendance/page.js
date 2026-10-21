@@ -961,14 +961,14 @@ if (semesterFilter !== "ALL") {
 
                               <div className="mt-1 flex flex-wrap gap-1">
 
-                                <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
                                   {student.department?.code ||
                                     "-"}
                                 </span>
 
                                 {currentStatus && (
                                   <span
-                                    className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
+                                    className={`rounded px-2 py-0.5 text-[11px] font-semibold ${
                                       currentStatus ===
                                       "PRESENT"
                                         ? "bg-green-100 text-green-700"

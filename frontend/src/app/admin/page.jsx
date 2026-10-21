@@ -693,7 +693,7 @@ const downloadExcelReport = () => {
 
             <div className="lg:col-span-2">
 
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">
                 Club
               </label>
 
@@ -736,7 +736,7 @@ const downloadExcelReport = () => {
 
             <div className="lg:col-span-2">
 
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">
                 Search
               </label>
 
@@ -1028,7 +1028,7 @@ const downloadExcelReport = () => {
       Daily Attendance
     </p>
 
-    <p className="text-[11px] text-slate-500">
+    <p className="text-xs text-slate-500">
       Showing{" "}
       {filteredStudents.length}{" "}
       of{" "}
@@ -1041,7 +1041,7 @@ const downloadExcelReport = () => {
 
   <div className="flex items-center gap-2">
 
-    <div className="hidden text-[10px] text-slate-400 lg:block">
+    <div className="hidden text-[11px] text-slate-400 lg:block">
       ← Scroll horizontally →
     </div>
 
@@ -1078,35 +1078,35 @@ const downloadExcelReport = () => {
 
                       {/* SL */}
 
-                      <th className="sticky left-0 z-40 w-10 border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[10px] font-bold text-slate-500">
+                      <th className="sticky left-0 z-40 w-10 border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[11px] font-bold text-slate-500">
                         #
                       </th>
 
 
                       {/* STUDENT */}
 
-                      <th className="sticky left-10 z-40 min-w-[190px] border-b border-r border-slate-200 bg-slate-100 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      <th className="sticky left-10 z-40 min-w-[190px] border-b border-r border-slate-200 bg-slate-100 px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
                         Student
                       </th>
 
 
                       {/* REGISTER */}
 
-                      <th className="sticky left-[230px] z-40 min-w-[105px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      <th className="sticky left-[230px] z-40 min-w-[105px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
                         Register No.
                       </th>
 
 
                       {/* DEPARTMENT */}
 
-                      <th className="sticky left-[335px] z-40 min-w-[65px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      <th className="sticky left-[335px] z-40 min-w-[65px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">
                         Dept
                       </th>
 
 
                       {/* SEM */}
 
-                      <th className="sticky left-[400px] z-40 min-w-[55px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      <th className="sticky left-[400px] z-40 min-w-[55px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">
                         Sem
                       </th>
 
@@ -1128,7 +1128,7 @@ const downloadExcelReport = () => {
                               }
                             </div>
 
-                            <div className="mt-0.5 text-[9px] font-medium text-slate-400">
+                            <div className="mt-0.5 text-[11px] font-medium text-slate-400">
                               {
                                 getDay(
                                   date
@@ -1143,28 +1143,28 @@ const downloadExcelReport = () => {
 
                       {/* ATTENDED */}
 
-                      <th className="min-w-[65px] border-b border-r border-slate-200 bg-blue-50 px-2 py-2 text-center text-[10px] font-bold text-blue-700">
+                      <th className="min-w-[65px] border-b border-r border-slate-200 bg-blue-50 px-2 py-2 text-center text-[11px] font-bold text-blue-700">
                         Att.
                       </th>
 
 
                       {/* TOTAL */}
 
-                      <th className="min-w-[65px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[10px] font-bold text-slate-600">
+                      <th className="min-w-[65px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[11px] font-bold text-slate-600">
                         Total
                       </th>
 
 
                       {/* PERCENTAGE */}
 
-                      <th className="min-w-[75px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[10px] font-bold text-slate-600">
+                      <th className="min-w-[75px] border-b border-r border-slate-200 bg-slate-100 px-2 py-2 text-center text-[11px] font-bold text-slate-600">
                         %
                       </th>
 
 
                       {/* CERTIFICATE */}
 
-                      <th className="min-w-[105px] border-b border-slate-200 bg-slate-100 px-2 py-2 text-center text-[10px] font-bold text-slate-600">
+                      <th className="min-w-[105px] border-b border-slate-200 bg-slate-100 px-2 py-2 text-center text-[11px] font-bold text-slate-600">
                         Certificate
                       </th>
 
@@ -1202,7 +1202,7 @@ const downloadExcelReport = () => {
 
                             {/* SL */}
 
-                            <td className="sticky left-0 z-20 border-b border-r border-slate-100 bg-white px-2 py-2 text-center text-[10px] text-slate-400 group-hover:bg-blue-50/40">
+                            <td className="sticky left-0 z-20 border-b border-r border-slate-100 bg-white px-2 py-2 text-center text-[11px] text-slate-400 group-hover:bg-blue-50/40">
                               {index + 1}
                             </td>
 
@@ -1225,7 +1225,7 @@ const downloadExcelReport = () => {
 
                                 ) : (
 
-                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[10px] font-bold text-blue-600">
+                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[11px] font-bold text-blue-600">
                                     {
                                       student.name
                                         ?.charAt(
@@ -1240,14 +1240,14 @@ const downloadExcelReport = () => {
 
                                 <div className="min-w-0">
 
-                                  <p className="max-w-[140px] truncate text-[11px] font-bold text-slate-800">
+                                  <p className="max-w-[140px] truncate text-xs font-bold text-slate-800">
                                     {
                                       student.name?.toUpperCase() ||
                                       "-"
                                     }
                                   </p>
 
-                                  <p className="max-w-[140px] truncate text-[9px] text-slate-400">
+                                  <p className="max-w-[140px] truncate text-[11px] text-slate-400">
                                     {
                                       student.email ||
                                       "-"
@@ -1263,7 +1263,7 @@ const downloadExcelReport = () => {
 
                             {/* REGISTER */}
 
-                            <td className="sticky left-[230px] z-20 border-b border-r border-slate-100 bg-white px-2 py-2 text-[10px] font-semibold text-slate-600 group-hover:bg-blue-50/40">
+                            <td className="sticky left-[230px] z-20 border-b border-r border-slate-100 bg-white px-2 py-2 text-[11px] font-semibold text-slate-600 group-hover:bg-blue-50/40">
                               {
                                 student.registerNumber ||
                                 "-"
@@ -1275,7 +1275,7 @@ const downloadExcelReport = () => {
 
                             <td className="sticky left-[335px] z-20 border-b border-r border-slate-100 bg-white px-2 py-2 text-center group-hover:bg-blue-50/40">
 
-                              <span className="rounded bg-slate-100 px-1.5 py-1 text-[9px] font-bold text-slate-600">
+                              <span className="rounded bg-slate-100 px-1.5 py-1 text-[11px] font-bold text-slate-600">
                                 {
                                   student.department
                                     ?.code ||
@@ -1288,7 +1288,7 @@ const downloadExcelReport = () => {
 
                             {/* SEMESTER */}
 
-                            <td className="sticky left-[400px] z-20 border-b border-r border-slate-100 bg-white px-2 py-2 text-center text-[10px] font-semibold text-slate-600 group-hover:bg-blue-50/40">
+                            <td className="sticky left-[400px] z-20 border-b border-r border-slate-100 bg-white px-2 py-2 text-center text-[11px] font-semibold text-slate-600 group-hover:bg-blue-50/40">
                               {
                                 student.semester ||
                                 "-"
@@ -1327,14 +1327,14 @@ const downloadExcelReport = () => {
                                     {status ===
                                     "P" ? (
 
-                                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-green-100 text-[10px] font-extrabold text-green-700">
+                                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-green-100 text-[11px] font-extrabold text-green-700">
                                         P
                                       </span>
 
                                     ) : status ===
                                       "A" ? (
 
-                                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-red-100 text-[10px] font-extrabold text-red-700">
+                                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-red-100 text-[11px] font-extrabold text-red-700">
                                         A
                                       </span>
 
@@ -1355,7 +1355,7 @@ const downloadExcelReport = () => {
 
                             {/* ATTENDED */}
 
-                            <td className="border-b border-r border-slate-100 bg-blue-50/50 px-2 py-2 text-center text-[11px] font-bold text-blue-700">
+                            <td className="border-b border-r border-slate-100 bg-blue-50/50 px-2 py-2 text-center text-xs font-bold text-blue-700">
                               {
                                 student.attendedClasses ||
                                 0
@@ -1365,7 +1365,7 @@ const downloadExcelReport = () => {
 
                             {/* TOTAL */}
 
-                            <td className="border-b border-r border-slate-100 px-2 py-2 text-center text-[11px] font-semibold text-slate-600">
+                            <td className="border-b border-r border-slate-100 px-2 py-2 text-center text-xs font-semibold text-slate-600">
                               {
                                 student.totalClasses ||
                                 0
@@ -1378,7 +1378,7 @@ const downloadExcelReport = () => {
                             <td className="border-b border-r border-slate-100 px-2 py-2 text-center">
 
                               <span
-                                className={`inline-flex min-w-[48px] justify-center rounded-full px-2 py-1 text-[10px] font-bold ${
+                                className={`inline-flex min-w-[48px] justify-center rounded-full px-2 py-1 text-[11px] font-bold ${
                                   percentage >=
                                   75
                                     ? "bg-green-100 text-green-700"
@@ -1420,7 +1420,7 @@ const downloadExcelReport = () => {
 
               {/* TABLE FOOTER */}
 
-              <div className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50 px-3 py-2 text-[10px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
 
                 <div>
                   P = Present &nbsp;•&nbsp;
@@ -1500,7 +1500,7 @@ function SummaryCard({
       className={`rounded-xl border border-slate-200 px-3 py-2.5 shadow-sm ${styles[type]}`}
     >
 
-      <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+      <p className="text-[11px] font-semibold uppercase tracking-wide opacity-60">
         {label}
       </p>
 
@@ -1526,7 +1526,7 @@ function FilterSelect({
   return (
     <div>
 
-      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+      <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">
         {label}
       </label>
 
@@ -1614,7 +1614,7 @@ function CertificateBadge({
 
   return (
     <span
-      className={`inline-flex min-w-[60px] justify-center rounded-full px-2 py-1 text-[9px] font-bold ${className}`}
+      className={`inline-flex min-w-[60px] justify-center rounded-full px-2 py-1 text-[11px] font-bold ${className}`}
     >
       {label}
     </span>

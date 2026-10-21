@@ -627,7 +627,7 @@ const clearClubFilters = () => {
 
               <div>
 
-                <p className="text-[10px] font-bold uppercase tracking-widest text-orange-100 sm:text-xs">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-orange-100 sm:text-xs">
                   Important Notice
                 </p>
 
@@ -851,36 +851,36 @@ const clearClubFilters = () => {
 
                     <tr className="border-b bg-slate-50">
 
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         #
                       </th>
 
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         Department
                       </th>
 
-                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         Year 1
-                        <span className="block text-[9px] normal-case text-slate-300">
+                        <span className="block text-[11px] normal-case text-slate-300">
                           Sem 1
                         </span>
                       </th>
 
-                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         Year 2
-                        <span className="block text-[9px] normal-case text-slate-300">
+                        <span className="block text-[11px] normal-case text-slate-300">
                           Sem 3
                         </span>
                       </th>
 
-                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         Year 3
-                        <span className="block text-[9px] normal-case text-slate-300">
+                        <span className="block text-[11px] normal-case text-slate-300">
                           Sem 5
                         </span>
                       </th>
 
-                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-indigo-500">
+                      <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-indigo-500">
                         Total
                       </th>
 
@@ -951,7 +951,7 @@ const clearClubFilters = () => {
 
                               <div className="flex items-center gap-2">
 
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-[10px] font-extrabold text-indigo-600">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-[11px] font-extrabold text-indigo-600">
                                   {code}
                                 </span>
 
@@ -1221,11 +1221,11 @@ const clearClubFilters = () => {
 
                   <tr className="border-b bg-slate-50">
 
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       #
                     </th>
 
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       Club
                     </th>
 
@@ -1244,14 +1244,14 @@ const clearClubFilters = () => {
                       .map((department) => (
                         <th
                           key={department._id}
-                          className="border-l border-slate-100 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-indigo-500"
+                          className="border-l border-slate-100 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-indigo-500"
                         >
                           {department.code ||
                             department.departmentCode}
                         </th>
                       ))}
 
-                    <th className="border-l border-slate-100 bg-emerald-50 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                    <th className="border-l border-slate-100 bg-emerald-50 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-emerald-600">
                       Total
                     </th>
 
@@ -1278,7 +1278,7 @@ const clearClubFilters = () => {
                             {club.name}
                           </p>
 
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-xs text-slate-400">
                             {club.code}
                           </p>
 

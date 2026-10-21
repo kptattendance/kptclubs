@@ -508,27 +508,27 @@ export default function AttendanceCheckPage() {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/80">
 
-                    <th className="w-14 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="w-14 px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-400">
                       #
                     </th>
 
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">
                       Club
                     </th>
 
-                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-400">
                       Members
                     </th>
 
-                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-400">
                       Sessions
                     </th>
 
-                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-400">
                       Last Marked
                     </th>
 
-                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-400">
                       Status
                     </th>
 
@@ -569,7 +569,7 @@ export default function AttendanceCheckPage() {
                               </p>
 
                               {club.code && (
-                                <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                                <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-slate-400">
                                   {club.code}
                                 </p>
                               )}
@@ -676,7 +676,7 @@ export default function AttendanceCheckPage() {
 
         {!loading &&
           filteredClubs.length > 0 && (
-            <div className="mt-3 flex flex-col gap-1 px-1 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-3 flex flex-col gap-1 px-1 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
               <span>
                 Attendance is considered marked when a
                 submission exists for the club.
@@ -762,7 +762,7 @@ export default function AttendanceCheckPage() {
                             )}
                           </p>
 
-                          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                          <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
                             Attendance Marked
                           </p>
                         </div>
@@ -834,7 +834,7 @@ function SummaryCard({
       <div className="flex items-center justify-between gap-3">
 
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">
             {title}
           </p>
 

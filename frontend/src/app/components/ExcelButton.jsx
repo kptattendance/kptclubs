@@ -98,7 +98,7 @@ export function InchargeLine({ incharge, className = "" }) {
           {" · "}
           <a
             href={`mailto:${incharge.email}`}
-            className="break-all text-blue-700 hover:underline"
+            className="break-words text-blue-700 hover:underline"
           >
             {incharge.email}
           </a>

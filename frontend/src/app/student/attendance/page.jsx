@@ -672,7 +672,7 @@ function SummaryCard({
   return (
     <div className="rounded-2xl bg-white p-4 shadow-[0_2px_12px_rgba(58,35,24,0.06)] sm:p-5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           {label}
         </p>
 
@@ -700,7 +700,7 @@ function SmallStat({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
         {label}
       </span>
 
@@ -754,7 +754,7 @@ function StatusBadge({
       }`}
     >
       <span
-        className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${
+        className={`flex h-4 w-4 items-center justify-center rounded-full text-[11px] ${
           isPresent
             ? "bg-emerald-100"
             : "bg-red-100"

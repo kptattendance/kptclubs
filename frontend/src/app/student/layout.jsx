@@ -206,7 +206,7 @@ export default function StudentLayout({ children }) {
                 KPT Club
               </h1>
 
-              <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+              <p className="mt-0.5 text-xs font-medium text-slate-400">
                 Student Portal
               </p>
             </div>
@@ -220,7 +220,7 @@ export default function StudentLayout({ children }) {
 
         <div className="flex-1 overflow-y-auto px-4 py-7">
 
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+          <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
             Student Menu
           </p>
 
@@ -330,7 +330,7 @@ export default function StudentLayout({ children }) {
                 KPT Club
               </p>
 
-              <p className="mt-1 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Student Portal
               </p>
 
@@ -414,7 +414,7 @@ export default function StudentLayout({ children }) {
                 Student
               </p>
 
-              <p className="mt-0.5 text-[11px] text-slate-400">
+              <p className="mt-0.5 text-xs text-slate-400">
                 Club Member
               </p>
 

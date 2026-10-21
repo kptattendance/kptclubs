@@ -214,7 +214,7 @@ export default function StudentDashboard() {
         {student?.registerNumber && (
           <div className="self-start rounded-xl bg-white px-4 py-2.5 shadow-sm sm:self-auto">
 
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               Register No.
             </p>
 
@@ -549,7 +549,7 @@ function Info({ label, value }) {
   return (
     <div className="min-w-0">
 
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
         {label}
       </p>
 

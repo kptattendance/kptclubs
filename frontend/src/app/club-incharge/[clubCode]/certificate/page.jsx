@@ -549,7 +549,7 @@ const downloadExcel = () => {
               <div className="flex flex-wrap gap-2">
 
                 <div className="rounded-xl bg-gray-50 px-4 py-2.5 ring-1 ring-gray-200">
-                  <p className="text-[10px] font-medium text-gray-500">
+                  <p className="text-[11px] font-medium text-gray-500">
                     Members
                   </p>
                   <p className="text-lg font-bold text-gray-900">
@@ -558,7 +558,7 @@ const downloadExcel = () => {
                 </div>
 
                 <div className="rounded-xl bg-amber-50 px-4 py-2.5 ring-1 ring-amber-100">
-                  <p className="text-[10px] font-medium text-amber-600">
+                  <p className="text-[11px] font-medium text-amber-600">
                     Pending
                   </p>
                   <p className="text-lg font-bold text-amber-700">
@@ -567,7 +567,7 @@ const downloadExcel = () => {
                 </div>
 
                 <div className="rounded-xl bg-green-50 px-4 py-2.5 ring-1 ring-green-100">
-                  <p className="text-[10px] font-medium text-green-600">
+                  <p className="text-[11px] font-medium text-green-600">
                     Approved
                   </p>
                   <p className="text-lg font-bold text-green-700">
@@ -1094,7 +1094,7 @@ const downloadExcel = () => {
                                   </span>
 
                                   <span
-                                    className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                                    className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
                                       attendancePercentage >=
                                       75
                                         ? "bg-green-50 text-green-700"
@@ -1271,7 +1271,7 @@ const downloadExcel = () => {
 
                                 </div>
 
-                                <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-[10px] font-bold text-gray-500">
+                                <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-500">
                                   #{index + 1}
                                 </span>
 
@@ -1327,7 +1327,7 @@ const downloadExcel = () => {
                               </span>
 
                               <span
-                                className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
                                   attendancePercentage >=
                                   75
                                     ? "bg-green-50 text-green-700"
@@ -1438,7 +1438,7 @@ function MobileInfo({ label, value }) {
   return (
     <div className="min-w-0 rounded-lg bg-gray-50 p-2.5 ring-1 ring-gray-100">
 
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
         {label}
       </p>
 

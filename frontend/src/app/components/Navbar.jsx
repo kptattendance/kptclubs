@@ -33,7 +33,7 @@ export default function Navbar() {
             </div>
 
             <div className="hidden text-center sm:block">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                 Karnataka (Govt.) Polytechnic, Mangaluru
               </p>
 
@@ -41,7 +41,7 @@ export default function Navbar() {
                 KPT Mangalore Clubs
               </h1>
 
-              <p className="text-[11px] font-medium text-indigo-600">
+              <p className="text-xs font-medium text-indigo-600">
                 Student Clubs & Activities
               </p>
             </div>
@@ -56,7 +56,7 @@ export default function Navbar() {
               </span>
             </h1>
 
-            <p className="mt-0.5 text-[8px] font-semibold uppercase tracking-wide text-slate-400">
+            <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               Student Activities
             </p>
           </div>

@@ -1252,7 +1252,7 @@ export default function ClubApplicationsPage() {
                             <div className="mt-2">
 
                               <span
-                                className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold ${getStatusStyle(
+                                className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${getStatusStyle(
                                   application.status
                                 )}`}
                               >
@@ -1496,7 +1496,7 @@ function MobileInfo({ label, value }) {
   return (
     <div className="min-w-0 rounded-lg bg-gray-50 p-2.5">
 
-      <p className="text-[10px] font-semibold uppercase text-gray-400">
+      <p className="text-[11px] font-semibold uppercase text-gray-400">
         {label}
       </p>
 

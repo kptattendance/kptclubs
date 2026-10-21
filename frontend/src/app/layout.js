@@ -1,11 +1,20 @@
-import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist_Mono, Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import BrokenImageFallback from "./components/BrokenImageFallback";
 
-const jakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+// Body text: Inter, the standard, very readable UI font
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+});
+
+// Headings: Poppins
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
@@ -179,7 +188,7 @@ export default function RootLayout({ children }) {
     <ClerkProvider>
       <html lang="en">
         <body
-          className={`${jakartaSans.variable} ${geistMono.variable} font-sans antialiased`}
+          className={`${inter.variable} ${poppins.variable} ${geistMono.variable} font-sans antialiased`}
         >
           <BrokenImageFallback />
 

@@ -626,7 +626,7 @@ export default function HODDashboard() {
 
           <div className="rounded-lg bg-blue-50 p-3 sm:rounded-xl sm:p-4">
 
-            <p className="text-[11px] text-gray-500 sm:text-xs">
+            <p className="text-xs text-gray-500 sm:text-xs">
               Students
             </p>
 
@@ -641,7 +641,7 @@ export default function HODDashboard() {
 
           <div className="rounded-lg bg-green-50 p-3 sm:rounded-xl sm:p-4">
 
-            <p className="text-[11px] text-gray-500 sm:text-xs">
+            <p className="text-xs text-gray-500 sm:text-xs">
               Clubs
             </p>
 
@@ -656,7 +656,7 @@ export default function HODDashboard() {
 
           <div className="rounded-lg bg-purple-50 p-3 sm:rounded-xl sm:p-4">
 
-            <p className="text-[11px] text-gray-500 sm:text-xs">
+            <p className="text-xs text-gray-500 sm:text-xs">
               Club Members
             </p>
 
@@ -671,7 +671,7 @@ export default function HODDashboard() {
 
           <div className="rounded-lg bg-orange-50 p-3 sm:rounded-xl sm:p-4">
 
-            <p className="text-[11px] text-gray-500 sm:text-xs">
+            <p className="text-xs text-gray-500 sm:text-xs">
               Clubs with Students
             </p>
 

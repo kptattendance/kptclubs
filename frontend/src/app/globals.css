@@ -17,7 +17,30 @@
    ========================================================= */
 
 @theme {
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-poppins), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* ---------- Type scale ----------
+     Slightly larger small sizes than Tailwind's defaults:
+     most of the site is small text in tables and cards. */
+  --text-xs: 0.78125rem;
+  --text-xs--line-height: 1.15rem;
+  --text-sm: 0.90625rem;
+  --text-sm--line-height: 1.4rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.7rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.8rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.3rem;
+
+  /* Very heavy weights look crude in Poppins/Inter */
+  --font-weight-extrabold: 700;
+  --font-weight-black: 800;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Named palette colors, for new code */
@@ -254,12 +277,38 @@
   }
 
   body {
+    line-height: 1.55;
     background-color: var(--color-cream);
     color: var(--color-espresso);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Headings use the display font */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  /* Small uppercase labels read better with a little spacing */
+  .uppercase {
+    letter-spacing: 0.05em;
+  }
+
+  /* Numbers line up in tables and statistics */
+  table,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    font-weight: 600;
   }
 
   ::selection {

@@ -861,7 +861,7 @@ export default function HODAttendancePage() {
                               )}
                             </div>
 
-                            <div className="mt-0.5 text-[10px] font-medium text-gray-400">
+                            <div className="mt-0.5 text-[11px] font-medium text-gray-400">
                               {getDay(date)}
                             </div>
                           </th>
@@ -1052,17 +1052,17 @@ export default function HODAttendancePage() {
                             <td className="px-3 py-3 text-center">
 
                               {student.certificateAllowed ? (
-                                <span className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-bold text-green-700">
+                                <span className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
                                   ALLOWED
                                 </span>
                               ) : student.certificateStatus ? (
-                                <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                                <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
                                   {
                                     student.certificateStatus
                                   }
                                 </span>
                               ) : (
-                                <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-500">
+                                <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-500">
                                   NOT GENERATED
                                 </span>
                               )}
