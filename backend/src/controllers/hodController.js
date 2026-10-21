@@ -11,6 +11,7 @@ import Certificate from "../models/Certificate.js";
 import { clerkClient } from "@clerk/express";
 import mongoose from "mongoose";
 import { deletePhotoByUrl } from "../utils/photoStorage.js";
+import { getClubInchargeMap } from "../utils/clubIncharges.js";
 
 // =====================================================
 // DELETE STUDENT BY HOD
@@ -588,6 +589,10 @@ export const getHODDashboard = async (req, res) => {
     );
 
 
+    const inchargeMap = await getClubInchargeMap(
+      clubs.map((club) => club._id)
+    );
+
     const clubStatistics = clubs.map((club) => ({
       id: club._id,
       code: club.code,
@@ -596,6 +601,8 @@ export const getHODDashboard = async (req, res) => {
       description: club.description || "",
       studentCount:
         memberCountMap.get(String(club._id)) || 0,
+      incharge:
+        inchargeMap.get(String(club._id)) || null,
     }));
 
 

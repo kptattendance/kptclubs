@@ -11,6 +11,7 @@ import {
   isOwnPhotoUrl,
   deletePhotoByUrl,
 } from "../utils/photoStorage.js";
+import { getClubInchargeMap } from "../utils/clubIncharges.js";
 
 const isValidId = (value) =>
   typeof value === "string" &&
@@ -622,6 +623,28 @@ export const getStudentProfile = async (req, res) => {
           "code name type description"
         );
 
+    // Students may contact the in-charge of their own club
+    let clubIncharge = null;
+
+    if (membership?.clubId?._id) {
+      const inchargeMap = await getClubInchargeMap([
+        membership.clubId._id,
+      ]);
+
+      const incharge = inchargeMap.get(
+        String(membership.clubId._id)
+      );
+
+      clubIncharge = incharge
+        ? {
+            name: incharge.name,
+            email: incharge.email,
+            phone: incharge.phone,
+            photoUrl: incharge.photoUrl,
+          }
+        : null;
+    }
+
     return res.status(200).json({
 
       success: true,
@@ -659,6 +682,9 @@ export const getStudentProfile = async (req, res) => {
 
         department:
           studentProfile.departmentId,
+
+        // Club In-charge of the student's club
+        clubIncharge,
 
         membership: membership
           ? {

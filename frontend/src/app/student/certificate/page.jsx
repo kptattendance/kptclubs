@@ -171,7 +171,7 @@ export default function StudentCertificatePage() {
 
       {certificate ? (
 
-        <div className="w-full overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(15,23,42,0.06)]">
+        <div className="w-full overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(58,35,24,0.06)]">
 
           {/* DESKTOP */}
 
@@ -379,7 +379,7 @@ export default function StudentCertificatePage() {
            NO CERTIFICATE
         ================================================= */
 
-        <div className="rounded-2xl bg-white px-5 py-10 text-center shadow-[0_2px_12px_rgba(15,23,42,0.06)]">
+        <div className="rounded-2xl bg-white px-5 py-10 text-center shadow-[0_2px_12px_rgba(58,35,24,0.06)]">
 
           <p className="text-sm font-semibold text-slate-700">
             Certificate not available

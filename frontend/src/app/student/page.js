@@ -264,7 +264,7 @@ export default function StudentDashboard() {
         />
       )}
 
-      <div className="mb-6 rounded-2xl bg-white p-5 shadow-[0_3px_15px_rgba(15,23,42,0.06)] sm:p-6">
+      <div className="mb-6 rounded-2xl bg-white p-5 shadow-[0_3px_15px_rgba(58,35,24,0.06)] sm:p-6">
 
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
 
@@ -416,6 +416,56 @@ export default function StudentDashboard() {
 
 
       {/* =================================================
+          CLUB IN-CHARGE
+      ================================================= */}
+
+      {membership?.club && (
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-[0_3px_15px_rgba(58,35,24,0.06)] sm:flex-row sm:items-center sm:p-6">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-xl">
+            👤
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Club In-charge · {membership.club.name}
+            </p>
+
+            {student?.clubIncharge ? (
+              <>
+                <p className="mt-1 truncate text-base font-bold text-slate-800">
+                  {student.clubIncharge.name}
+                </p>
+
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {student.clubIncharge.phone && (
+                    <a
+                      href={`tel:${student.clubIncharge.phone}`}
+                      className="font-medium text-blue-700 hover:underline"
+                    >
+                      {student.clubIncharge.phone}
+                    </a>
+                  )}
+
+                  {student.clubIncharge.email && (
+                    <a
+                      href={`mailto:${student.clubIncharge.email}`}
+                      className="break-all font-medium text-blue-700 hover:underline"
+                    >
+                      {student.clubIncharge.email}
+                    </a>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-slate-500">
+                An in-charge has not been assigned to this club yet.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =================================================
           REGISTER FOR CLUB
       ================================================= */}
 
@@ -545,7 +595,7 @@ function DashboardCard({
   return (
     <Link
       href={href}
-      className="group rounded-2xl bg-white p-5 shadow-[0_3px_15px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+      className="group rounded-2xl bg-white p-5 shadow-[0_3px_15px_rgba(58,35,24,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-lg"
     >
 
       <div className="flex items-start justify-between">
@@ -698,7 +748,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3 rounded-xl bg-white px-4 py-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group flex items-center gap-3 rounded-xl bg-white px-4 py-4 shadow-[0_2px_10px_rgba(58,35,24,0.05)] transition hover:-translate-y-0.5 hover:shadow-md"
     >
 
       <div

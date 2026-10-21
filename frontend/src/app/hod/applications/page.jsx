@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import axios from "axios";
 import { photoThumb } from "@/lib/photo";
+import ExcelButton from "../../components/ExcelButton";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -417,15 +418,40 @@ export default function HODApplicationsPage() {
             HEADER
         ================================================= */}
 
-        <div className="mb-4 sm:mb-5">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
 
-          <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
-            Student Applications
-          </h1>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
+              Student Applications
+            </h1>
 
-          <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-            Review club applications forwarded by Club In-charges.
-          </p>
+            <p className="mt-1 text-xs text-gray-500 sm:text-sm">
+              Review club applications forwarded by Club In-charges.
+            </p>
+          </div>
+
+          {filteredApplications.length > 0 && (
+            <ExcelButton
+              fileName="HOD_Applications"
+              sheetName="Applications"
+              getRows={() =>
+                filteredApplications.map((application, index) => ({
+                  "Sl No": index + 1,
+                  Name: application.student?.name || "",
+                  "Register Number": application.student?.registerNumber || "",
+                  Email: application.student?.email || "",
+                  Phone: application.student?.phone || "",
+                  Semester: application.student?.semester ?? "",
+                  Club: application.club?.name || "",
+                  "Club Code": application.club?.code || "",
+                  Status: application.status,
+                  "Applied On": application.appliedAt
+                    ? new Date(application.appliedAt).toLocaleDateString("en-IN")
+                    : "",
+                }))
+              }
+            />
+          )}
 
         </div>
 

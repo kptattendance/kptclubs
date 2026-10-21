@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
+import ExcelButton from "../../components/ExcelButton";
 
 export default function AttendanceCheckPage() {
   const { getToken } = useAuth();
@@ -421,7 +422,7 @@ export default function AttendanceCheckPage() {
 
           {/* TABLE HEADER */}
 
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
               <h2 className="text-sm font-bold text-slate-800 sm:text-base">
                 Club Attendance Status
@@ -435,6 +436,25 @@ export default function AttendanceCheckPage() {
                 shown
               </p>
             </div>
+
+            {filteredClubs.length > 0 && (
+              <ExcelButton
+                fileName={`Attendance_Submission${selectedDate ? `_${selectedDate}` : ""}`}
+                sheetName="Submission Status"
+                getRows={() =>
+                  filteredClubs.map((club, index) => ({
+                    "Sl No": index + 1,
+                    Club: club.name,
+                    Code: club.code,
+                    "Confirmed Members": club.totalMembers,
+                    Status: club.marked ? "Marked" : "Not marked",
+                    Sessions: club.totalSessions,
+                    "Last Marked": club.lastMarkedDate || "",
+                    "Attendance Dates": (club.attendanceDates || []).join(", "),
+                  }))
+                }
+              />
+            )}
           </div>
 
           {/* LOADING */}

@@ -417,11 +417,11 @@ export default function AddClubPage() {
         .form-input {
           width: 100%;
           border-radius: 0.75rem;
-          border: 1px solid rgb(226 232 240);
-          background: rgb(248 250 252);
+          border: 1px solid rgb(234 219 201);
+          background: rgb(251 244 236);
           padding: 0.75rem 0.875rem;
           font-size: 0.875rem;
-          color: rgb(51 65 85);
+          color: rgb(87 64 53);
           outline: none;
           transition:
             border-color 150ms ease,
@@ -430,19 +430,19 @@ export default function AddClubPage() {
         }
 
         .form-input::placeholder {
-          color: rgb(148 163 184);
+          color: rgb(179 154 134);
         }
 
         .form-input:hover {
-          border-color: rgb(203 213 225);
+          border-color: rgb(217 195 172);
           background: white;
         }
 
         .form-input:focus {
-          border-color: rgb(59 130 246);
+          border-color: rgb(193 97 74);
           background: white;
           box-shadow:
-            0 0 0 4px rgb(219 234 254);
+            0 0 0 4px rgb(248 227 220);
         }
 
         select.form-input {

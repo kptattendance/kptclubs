@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
+import ExcelButton from "../../components/ExcelButton";
 
 export default function AdminClubsPage() {
   const { getToken } = useAuth();
@@ -590,8 +591,31 @@ export default function AdminClubsPage() {
 
             </div>
 
-            <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500">
-              {filteredClubs.length} records
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500">
+                {filteredClubs.length} records
+              </div>
+
+              {filteredClubs.length > 0 && (
+                <ExcelButton
+                  fileName="Clubs"
+                  sheetName="Clubs"
+                  getRows={() =>
+                    filteredClubs.map((club, index) => ({
+                      "Sl No": index + 1,
+                      Club: club.name,
+                      Code: club.code,
+                      Type: club.type || "",
+                      Status: club.isActive ? "Active" : "Inactive",
+                      "Club In-charge": club.incharge?.name || "Not assigned",
+                      "In-charge Department": club.incharge?.department?.code || "",
+                      "In-charge Phone": club.incharge?.phone || "",
+                      "In-charge Email": club.incharge?.email || "",
+                      Description: club.description || "",
+                    }))
+                  }
+                />
+              )}
             </div>
 
           </div>
@@ -636,7 +660,7 @@ export default function AdminClubsPage() {
 
             <div className="overflow-x-auto">
 
-              <table className="w-full min-w-[1000px]">
+              <table className="w-full min-w-[1180px]">
 
                 {/* ================================================= */}
                 {/* HEAD */}
@@ -656,6 +680,10 @@ export default function AdminClubsPage() {
 
                     <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Type
+                    </th>
+
+                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Club In-charge
                     </th>
 
                     <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -741,6 +769,32 @@ export default function AdminClubsPage() {
                             </span>
                           )}
 
+                        </td>
+
+                        {/* CLUB IN-CHARGE */}
+
+                        <td className="min-w-[180px] px-5 py-4">
+                          {club.incharge ? (
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-800">
+                                {club.incharge.name}
+                              </p>
+
+                              <p className="truncate text-xs text-slate-500">
+                                {[
+                                  club.incharge.department?.code,
+                                  club.incharge.phone,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ") ||
+                                  club.incharge.email}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                              Not assigned
+                            </span>
+                          )}
                         </td>
 
                         {/* DESCRIPTION */}

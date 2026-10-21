@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import { photoThumb } from "@/lib/photo";
+import ExcelButton from "@/app/components/ExcelButton";
 
 export default function AttendancePage() {
   const { getToken } = useAuth();
@@ -458,8 +459,27 @@ if (semesterFilter !== "ALL") {
           {/* LOCKED */}
 
           {submitted && (
-            <div className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-              Attendance submitted and locked.
+            <div className="mt-4 flex flex-col gap-3 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-700 sm:flex-row sm:items-center sm:justify-between">
+              <span>Attendance submitted and locked.</span>
+
+              {students.length > 0 && (
+                <ExcelButton
+                  fileName={`Attendance_${attendanceDate}`}
+                  sheetName={attendanceDate}
+                  label="Download this day"
+                  getRows={() =>
+                    students.map((student, index) => ({
+                      "Sl No": index + 1,
+                      Date: attendanceDate,
+                      Name: student.name,
+                      "Register Number": student.registerNumber,
+                      Department: student.department?.code || "",
+                      Semester: student.semester ?? "",
+                      Status: student.status || attendance[student.studentId] || "",
+                    }))
+                  }
+                />
+              )}
             </div>
           )}
 

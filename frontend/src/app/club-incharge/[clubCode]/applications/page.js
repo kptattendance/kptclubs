@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useParams } from "next/navigation";
 import axios from "axios";
 import { photoThumb } from "@/lib/photo";
+import ExcelButton from "@/app/components/ExcelButton";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -643,6 +644,30 @@ export default function ClubApplicationsPage() {
 
             </div>
 
+            <div className="flex flex-wrap gap-2">
+            {filteredApplications.length > 0 && (
+              <ExcelButton
+                fileName={`Applications_${clubCode?.toUpperCase() || "Club"}`}
+                sheetName="Applications"
+                className="h-10 py-0"
+                getRows={() =>
+                  filteredApplications.map((application, index) => ({
+                    "Sl No": index + 1,
+                    Name: application.student?.name || "",
+                    "Register Number": application.student?.registerNumber || "",
+                    Email: application.student?.email || "",
+                    Phone: application.student?.phone || "",
+                    Department: application.student?.department?.code || "",
+                    Semester: application.student?.semester ?? "",
+                    Status: application.status,
+                    "Applied On": application.appliedAt
+                      ? new Date(application.appliedAt).toLocaleDateString("en-IN")
+                      : "",
+                  }))
+                }
+              />
+            )}
+
             <button
               type="button"
               onClick={loadApplications}
@@ -651,6 +676,7 @@ export default function ClubApplicationsPage() {
             >
               Refresh
             </button>
+            </div>
 
           </div>
 

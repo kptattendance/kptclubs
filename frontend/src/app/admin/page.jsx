@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
 import { photoThumb } from "@/lib/photo";
+import { InchargeLine } from "../components/ExcelButton";
 
 export default function AttendancePage() {
   const { getToken } = useAuth();
@@ -647,6 +648,19 @@ const downloadExcelReport = () => {
             <p className="mt-0.5 text-xs text-slate-500">
               Daily attendance and certificate status
             </p>
+
+            {selectedClub && (
+              <InchargeLine
+                className="mt-1"
+                incharge={
+                  clubs.find(
+                    (club) =>
+                      String(club._id || club.id) ===
+                      String(selectedClub)
+                  )?.incharge
+                }
+              />
+            )}
           </div>
 
           {selectedClub && (

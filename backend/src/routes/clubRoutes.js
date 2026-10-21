@@ -18,9 +18,10 @@ const router = express.Router();
 
 
 // Get all clubs
+// Signed-in users only: includes Club In-charge contact details
 router.get(
   "/",
-  // requireAuth,
+  requireAuth,
   getClubs
 );
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import ExcelButton from "../../components/ExcelButton";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -61,14 +62,35 @@ export default function HODClubsPage() {
       <div className="mx-auto w-full max-w-7xl">
 
         {/* HEADER */}
-        <div className="mb-4 sm:mb-5">
-          <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
-            Clubs
-          </h1>
+        <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
+              Clubs
+            </h1>
 
-          <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-            Clubs and students from your department
-          </p>
+            <p className="mt-1 text-xs text-gray-500 sm:text-sm">
+              Clubs and students from your department
+            </p>
+          </div>
+
+          {clubs.length > 0 && (
+            <ExcelButton
+              fileName="Department_Clubs"
+              sheetName="Clubs"
+              getRows={() =>
+                clubs.map((club, index) => ({
+                  "Sl No": index + 1,
+                  Club: club.name,
+                  Code: club.code,
+                  Type: club.type || "",
+                  "Department Students": club.studentCount ?? 0,
+                  "Club In-charge": club.incharge?.name || "Not assigned",
+                  "In-charge Phone": club.incharge?.phone || "",
+                  "In-charge Email": club.incharge?.email || "",
+                }))
+              }
+            />
+          )}
         </div>
 
 
@@ -147,7 +169,7 @@ export default function HODClubsPage() {
                   w-full
                   min-w-[620px]
                   text-xs
-                  sm:min-w-[700px]
+                  sm:min-w-[860px]
                   sm:text-sm
                 "
               >
@@ -205,6 +227,10 @@ export default function HODClubsPage() {
                       "
                     >
                       Type
+                    </th>
+
+                    <th className="px-3 py-3 text-left font-semibold text-gray-700 sm:px-4">
+                      Club In-charge
                     </th>
 
                     <th
@@ -311,6 +337,31 @@ export default function HODClubsPage() {
                         <span className="block break-words">
                           {club.type || "-"}
                         </span>
+                      </td>
+
+
+                      {/* CLUB IN-CHARGE */}
+                      <td className="min-w-[160px] px-3 py-3 sm:px-4">
+                        {club.incharge ? (
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-800">
+                              {club.incharge.name}
+                            </p>
+
+                            {club.incharge.phone && (
+                              <a
+                                href={`tel:${club.incharge.phone}`}
+                                className="text-xs text-blue-700 hover:underline"
+                              >
+                                {club.incharge.phone}
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs italic text-gray-400">
+                            Not assigned
+                          </span>
+                        )}
                       </td>
 
 

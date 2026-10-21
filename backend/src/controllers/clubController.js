@@ -2,6 +2,7 @@
 import Club from "../models/Club.js";
 import User from "../models/User.js";
 import ClubMembership from "../models/ClubMembership.js";
+import { getClubInchargeMap } from "../utils/clubIncharges.js";
 
 export const getClubDashboard = async (req, res) => {
   try {
@@ -75,13 +76,23 @@ export const getClubDashboard = async (req, res) => {
 // Get all clubs
 export const getClubs = async (req, res) => {
   try {
-    const clubs = await Club.find()
-      .sort({ name: 1 });
+    const [clubs, inchargeMap] = await Promise.all([
+      Club.find()
+        .sort({ name: 1 })
+        .lean(),
+      getClubInchargeMap(),
+    ]);
+
+    // Each club with its Club In-charge (or null)
+    const clubsWithIncharge = clubs.map((club) => ({
+      ...club,
+      incharge: inchargeMap.get(String(club._id)) || null,
+    }));
 
     res.status(200).json({
       success: true,
-      count: clubs.length,
-      clubs,
+      count: clubsWithIncharge.length,
+      clubs: clubsWithIncharge,
     });
   } catch (error) {
     console.error("Get clubs error:", error);

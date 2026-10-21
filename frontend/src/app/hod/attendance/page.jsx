@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
 import { photoThumb } from "@/lib/photo";
+import { InchargeLine } from "../../components/ExcelButton";
 
 export default function HODAttendancePage() {
   const { getToken, isLoaded } = useAuth();
@@ -553,6 +554,19 @@ export default function HODAttendancePage() {
                   <p className="mt-0.5 text-sm text-gray-500">
                     Detailed club attendance for your department
                   </p>
+
+                  {selectedClub && (
+                    <InchargeLine
+                      className="mt-1"
+                      incharge={
+                        clubs.find(
+                          (club) =>
+                            String(club._id || club.id) ===
+                            String(selectedClub)
+                        )?.incharge
+                      }
+                    />
+                  )}
                 </div>
               </div>
             </div>

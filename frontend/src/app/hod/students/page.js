@@ -418,9 +418,9 @@ const deleteStudent = async (student) => {
   const result = await Swal.fire({
     title: "Delete Student?",
     html: `
-      <div style="font-size:14px;color:#6b7280;">
+      <div style="font-size:14px;color:#6f574a;">
         Are you sure you want to delete
-        <strong style="color:#111827;">
+        <strong style="color:#3a2318;">
           ${safeName}
         </strong>?
         <br />
@@ -436,7 +436,7 @@ const deleteStudent = async (student) => {
     cancelButtonText: "Cancel",
     reverseButtons: true,
     confirmButtonColor: "#dc2626",
-    cancelButtonColor: "#6b7280",
+    cancelButtonColor: "#8e7464",
   });
 
   if (!result.isConfirmed) {
@@ -488,7 +488,7 @@ const deleteStudent = async (student) => {
         "Student deleted successfully.",
       icon: "success",
       confirmButtonText: "OK",
-      confirmButtonColor: "#2563eb",
+      confirmButtonColor: "#c1614a",
     });
 
   } catch (error) {

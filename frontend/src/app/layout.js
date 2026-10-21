@@ -1,17 +1,25 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import BrokenImageFallback from "./components/BrokenImageFallback";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const jakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// Colors the mobile browser bar to match the site
+export const viewport = {
+  themeColor: "#3A2318",
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata = {
   metadataBase: new URL("https://clubs.kptmangaluru.in"),
@@ -171,7 +179,7 @@ export default function RootLayout({ children }) {
     <ClerkProvider>
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable}`}
+          className={`${jakartaSans.variable} ${geistMono.variable} font-sans antialiased`}
         >
           <BrokenImageFallback />
 

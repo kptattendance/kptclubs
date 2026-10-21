@@ -1,1 +1,337 @@
 @import "tailwindcss";
+
+/* =========================================================
+   KPT CLUBS THEME
+
+   Brand palette
+     Cream       #FBF4EC   page background
+     Espresso    #3A2318   text, dark surfaces
+     Terracotta  #C1614A   primary actions, links, highlights
+     Sand        #E0B98F   secondary accents
+
+   The pages use Tailwind's standard color names (blue, gray,
+   slate ...). Instead of editing every page, those color
+   scales are redefined here, so the whole site follows the
+   palette. Green and red keep their meaning (present/absent,
+   success/error).
+   ========================================================= */
+
+@theme {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Named palette colors, for new code */
+  --color-cream: #fbf4ec;
+  --color-espresso: #3a2318;
+  --color-terracotta: #c1614a;
+  --color-sand: #e0b98f;
+
+  /* ---------- Terracotta: primary / accent ---------- */
+  --color-brand-50: #fcf3f0;
+  --color-brand-100: #f8e3dc;
+  --color-brand-200: #f0c6b8;
+  --color-brand-300: #e5a28d;
+  --color-brand-400: #d6806a;
+  --color-brand-500: #c96e57;
+  --color-brand-600: #c1614a;
+  --color-brand-700: #a14c39;
+  --color-brand-800: #7f3c2e;
+  --color-brand-900: #5f2e24;
+  --color-brand-950: #3b1c15;
+
+  --color-blue-50: var(--color-brand-50);
+  --color-blue-100: var(--color-brand-100);
+  --color-blue-200: var(--color-brand-200);
+  --color-blue-300: var(--color-brand-300);
+  --color-blue-400: var(--color-brand-400);
+  --color-blue-500: var(--color-brand-500);
+  --color-blue-600: var(--color-brand-600);
+  --color-blue-700: var(--color-brand-700);
+  --color-blue-800: var(--color-brand-800);
+  --color-blue-900: var(--color-brand-900);
+  --color-blue-950: var(--color-brand-950);
+
+  --color-indigo-50: var(--color-brand-50);
+  --color-indigo-100: var(--color-brand-100);
+  --color-indigo-200: var(--color-brand-200);
+  --color-indigo-300: var(--color-brand-300);
+  --color-indigo-400: var(--color-brand-400);
+  --color-indigo-500: var(--color-brand-500);
+  --color-indigo-600: var(--color-brand-600);
+  --color-indigo-700: var(--color-brand-700);
+  --color-indigo-800: var(--color-brand-800);
+  --color-indigo-900: var(--color-brand-900);
+  --color-indigo-950: var(--color-brand-950);
+
+  --color-violet-50: var(--color-brand-50);
+  --color-violet-100: var(--color-brand-100);
+  --color-violet-200: var(--color-brand-200);
+  --color-violet-300: var(--color-brand-300);
+  --color-violet-400: var(--color-brand-400);
+  --color-violet-500: var(--color-brand-500);
+  --color-violet-600: var(--color-brand-600);
+  --color-violet-700: var(--color-brand-700);
+  --color-violet-800: var(--color-brand-800);
+  --color-violet-900: var(--color-brand-900);
+  --color-violet-950: var(--color-brand-950);
+
+  --color-purple-50: var(--color-brand-50);
+  --color-purple-100: var(--color-brand-100);
+  --color-purple-200: var(--color-brand-200);
+  --color-purple-300: var(--color-brand-300);
+  --color-purple-400: var(--color-brand-400);
+  --color-purple-500: var(--color-brand-500);
+  --color-purple-600: var(--color-brand-600);
+  --color-purple-700: var(--color-brand-700);
+  --color-purple-800: var(--color-brand-800);
+  --color-purple-900: var(--color-brand-900);
+  --color-purple-950: var(--color-brand-950);
+
+  --color-sky-50: var(--color-brand-50);
+  --color-sky-100: var(--color-brand-100);
+  --color-sky-200: var(--color-brand-200);
+  --color-sky-300: var(--color-brand-300);
+  --color-sky-400: var(--color-brand-400);
+  --color-sky-500: var(--color-brand-500);
+  --color-sky-600: var(--color-brand-600);
+  --color-sky-700: var(--color-brand-700);
+  --color-sky-800: var(--color-brand-800);
+  --color-sky-900: var(--color-brand-900);
+
+  --color-cyan-50: var(--color-brand-50);
+  --color-cyan-100: var(--color-brand-100);
+  --color-cyan-500: var(--color-brand-500);
+  --color-cyan-600: var(--color-brand-600);
+  --color-cyan-700: var(--color-brand-700);
+
+  --color-pink-50: var(--color-brand-50);
+  --color-pink-100: var(--color-brand-100);
+  --color-pink-500: var(--color-brand-500);
+  --color-pink-600: var(--color-brand-600);
+  --color-pink-700: var(--color-brand-700);
+
+  /* ---------- Warm neutrals: cream -> espresso ---------- */
+  --color-warm-50: #fbf4ec;
+  --color-warm-100: #f5eadd;
+  --color-warm-200: #eadbc9;
+  --color-warm-300: #d9c3ac;
+  --color-warm-400: #b39a86;
+  --color-warm-500: #8e7464;
+  --color-warm-600: #6f574a;
+  --color-warm-700: #574035;
+  --color-warm-800: #3a2318;
+  --color-warm-900: #2d1b12;
+  --color-warm-950: #1f120c;
+
+  --color-gray-50: var(--color-warm-50);
+  --color-gray-100: var(--color-warm-100);
+  --color-gray-200: var(--color-warm-200);
+  --color-gray-300: var(--color-warm-300);
+  --color-gray-400: var(--color-warm-400);
+  --color-gray-500: var(--color-warm-500);
+  --color-gray-600: var(--color-warm-600);
+  --color-gray-700: var(--color-warm-700);
+  --color-gray-800: var(--color-warm-800);
+  --color-gray-900: var(--color-warm-900);
+  --color-gray-950: var(--color-warm-950);
+
+  --color-slate-50: var(--color-warm-50);
+  --color-slate-100: var(--color-warm-100);
+  --color-slate-200: var(--color-warm-200);
+  --color-slate-300: var(--color-warm-300);
+  --color-slate-400: var(--color-warm-400);
+  --color-slate-500: var(--color-warm-500);
+  --color-slate-600: var(--color-warm-600);
+  --color-slate-700: var(--color-warm-700);
+  --color-slate-800: var(--color-warm-800);
+  --color-slate-900: var(--color-warm-900);
+  --color-slate-950: var(--color-warm-950);
+
+  --color-zinc-50: var(--color-warm-50);
+  --color-zinc-100: var(--color-warm-100);
+  --color-zinc-200: var(--color-warm-200);
+  --color-zinc-300: var(--color-warm-300);
+  --color-zinc-400: var(--color-warm-400);
+  --color-zinc-500: var(--color-warm-500);
+  --color-zinc-600: var(--color-warm-600);
+  --color-zinc-700: var(--color-warm-700);
+  --color-zinc-800: var(--color-warm-800);
+  --color-zinc-900: var(--color-warm-900);
+
+  --color-neutral-50: var(--color-warm-50);
+  --color-neutral-100: var(--color-warm-100);
+  --color-neutral-200: var(--color-warm-200);
+  --color-neutral-300: var(--color-warm-300);
+  --color-neutral-400: var(--color-warm-400);
+  --color-neutral-500: var(--color-warm-500);
+  --color-neutral-600: var(--color-warm-600);
+  --color-neutral-700: var(--color-warm-700);
+  --color-neutral-800: var(--color-warm-800);
+  --color-neutral-900: var(--color-warm-900);
+
+  --color-stone-50: var(--color-warm-50);
+  --color-stone-100: var(--color-warm-100);
+  --color-stone-200: var(--color-warm-200);
+  --color-stone-300: var(--color-warm-300);
+  --color-stone-400: var(--color-warm-400);
+  --color-stone-500: var(--color-warm-500);
+  --color-stone-600: var(--color-warm-600);
+  --color-stone-700: var(--color-warm-700);
+  --color-stone-800: var(--color-warm-800);
+  --color-stone-900: var(--color-warm-900);
+
+  /* ---------- Sand: secondary / warnings ---------- */
+  --color-sand-50: #fcf6ee;
+  --color-sand-100: #f8ebd9;
+  --color-sand-200: #f0d9bd;
+  --color-sand-300: #e0b98f;
+  --color-sand-400: #d5a473;
+  --color-sand-500: #c78c58;
+  --color-sand-600: #a87142;
+  --color-sand-700: #865834;
+  --color-sand-800: #66432a;
+  --color-sand-900: #4b3221;
+  --color-sand-950: #2e1e14;
+
+  --color-amber-50: var(--color-sand-50);
+  --color-amber-100: var(--color-sand-100);
+  --color-amber-200: var(--color-sand-200);
+  --color-amber-300: var(--color-sand-300);
+  --color-amber-400: var(--color-sand-400);
+  --color-amber-500: var(--color-sand-500);
+  --color-amber-600: var(--color-sand-600);
+  --color-amber-700: var(--color-sand-700);
+  --color-amber-800: var(--color-sand-800);
+  --color-amber-900: var(--color-sand-900);
+
+  --color-orange-50: var(--color-sand-50);
+  --color-orange-100: var(--color-sand-100);
+  --color-orange-200: var(--color-sand-200);
+  --color-orange-300: var(--color-sand-300);
+  --color-orange-400: var(--color-sand-400);
+  --color-orange-500: var(--color-sand-500);
+  --color-orange-600: var(--color-sand-600);
+  --color-orange-700: var(--color-sand-700);
+  --color-orange-800: var(--color-sand-800);
+  --color-orange-900: var(--color-sand-900);
+
+  --color-yellow-50: var(--color-sand-50);
+  --color-yellow-100: var(--color-sand-100);
+  --color-yellow-200: var(--color-sand-200);
+  --color-yellow-300: var(--color-sand-300);
+  --color-yellow-400: var(--color-sand-400);
+  --color-yellow-500: var(--color-sand-500);
+  --color-yellow-600: var(--color-sand-600);
+  --color-yellow-700: var(--color-sand-700);
+  --color-yellow-800: var(--color-sand-800);
+
+  /* ---------- Softer, warmer shadows ---------- */
+  --shadow-sm: 0 1px 2px 0 rgb(58 35 24 / 0.06), 0 1px 3px 0 rgb(58 35 24 / 0.05);
+  --shadow: 0 2px 6px -1px rgb(58 35 24 / 0.08), 0 1px 3px -1px rgb(58 35 24 / 0.06);
+  --shadow-md: 0 6px 14px -4px rgb(58 35 24 / 0.10), 0 2px 6px -2px rgb(58 35 24 / 0.06);
+  --shadow-lg: 0 14px 28px -8px rgb(58 35 24 / 0.14), 0 4px 10px -4px rgb(58 35 24 / 0.08);
+  --shadow-xl: 0 22px 44px -12px rgb(58 35 24 / 0.18), 0 8px 16px -8px rgb(58 35 24 / 0.10);
+}
+
+/* =========================================================
+   BASE
+   ========================================================= */
+
+@layer base {
+  /* Borders without a color class get a soft sand tone
+     (Tailwind's default would be the dark text color) */
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    border-color: var(--color-warm-200);
+  }
+
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-espresso);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-200);
+    color: var(--color-espresso);
+  }
+
+  /* Checkboxes, radios and range inputs */
+  input,
+  progress {
+    accent-color: var(--color-terracotta);
+  }
+
+  /* One clear keyboard focus style everywhere */
+  :focus-visible {
+    outline: 2px solid var(--color-terracotta);
+    outline-offset: 2px;
+  }
+
+  button,
+  [role="button"],
+  label[for],
+  select {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Avoid iOS zooming into form fields */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1em);
+    }
+  }
+
+  /* Slim, warm scrollbars for wide tables */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-warm-300) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-warm-300);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* SweetAlert dialogs follow the theme */
+.swal2-popup {
+  border-radius: 1rem !important;
+  font-family: var(--font-sans) !important;
+  color: var(--color-espresso) !important;
+}

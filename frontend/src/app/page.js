@@ -604,7 +604,7 @@ const clearClubFilters = () => {
 };
 
   return (
-    <main className="min-h-screen bg-[#f6f8fb]">
+    <main className="min-h-screen bg-cream">
 
 
 

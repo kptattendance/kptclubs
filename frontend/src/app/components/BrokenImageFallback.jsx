@@ -6,7 +6,7 @@ import { useEffect } from "react";
 const PLACEHOLDER =
   "data:image/svg+xml," +
   encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="#e2e8f0"/><circle cx="48" cy="38" r="16" fill="#94a3b8"/><path d="M16 88c0-18 14-30 32-30s32 12 32 30z" fill="#94a3b8"/></svg>'
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="#f5eadd"/><circle cx="48" cy="38" r="16" fill="#b39a86"/><path d="M16 88c0-18 14-30 32-30s32 12 32 30z" fill="#b39a86"/></svg>'
   );
 
 // When any photo on the site fails to load (for example a link

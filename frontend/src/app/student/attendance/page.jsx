@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
+import ExcelButton from "../../components/ExcelButton";
 
 export default function StudentAttendancePage() {
   const { getToken } = useAuth();
@@ -182,15 +183,34 @@ export default function StudentAttendancePage() {
           HEADER
       ================================================= */}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">
-          Attendance
-        </h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">
+            Attendance
+          </h1>
 
-        <p className="mt-1 text-sm text-slate-500">
-          View attendance details and
-          date-wise attendance history.
-        </p>
+          <p className="mt-1 text-sm text-slate-500">
+            View attendance details and
+            date-wise attendance history.
+          </p>
+        </div>
+
+        {attendance.length > 0 && (
+          <ExcelButton
+            fileName="My_Attendance"
+            sheetName="Attendance"
+            getRows={() =>
+              attendance.flatMap((club) =>
+                (club.attendanceHistory || []).map((entry) => ({
+                  Club: club.clubName,
+                  Date: entry.date,
+                  Day: entry.day,
+                  Status: entry.status,
+                }))
+              )
+            }
+          />
+        )}
       </div>
 
       {/* =================================================
@@ -208,7 +228,7 @@ export default function StudentAttendancePage() {
       ================================================= */}
 
       {attendance.length === 0 ? (
-        <div className="rounded-2xl bg-white px-5 py-12 text-center shadow-[0_2px_12px_rgba(15,23,42,0.06)]">
+        <div className="rounded-2xl bg-white px-5 py-12 text-center shadow-[0_2px_12px_rgba(58,35,24,0.06)]">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
             📅
           </div>
@@ -262,7 +282,7 @@ export default function StudentAttendancePage() {
               FILTERS
           ================================================= */}
 
-          <div className="mb-6 rounded-2xl bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.06)] sm:p-5">
+          <div className="mb-6 rounded-2xl bg-white p-4 shadow-[0_2px_12px_rgba(58,35,24,0.06)] sm:p-5">
             <div className="grid gap-4 sm:grid-cols-2">
               {/* CLUB FILTER */}
 
@@ -347,7 +367,7 @@ export default function StudentAttendancePage() {
                 return (
                   <div
                     key={club.clubId}
-                    className="overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(15,23,42,0.06)]"
+                    className="overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(58,35,24,0.06)]"
                   >
                     {/* =================================================
                         CLUB HEADER
@@ -650,7 +670,7 @@ function SummaryCard({
   }
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-[0_2px_12px_rgba(15,23,42,0.06)] sm:p-5">
+    <div className="rounded-2xl bg-white p-4 shadow-[0_2px_12px_rgba(58,35,24,0.06)] sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {label}

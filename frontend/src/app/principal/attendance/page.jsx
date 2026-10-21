@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import api from "@/lib/api";
 import { photoThumb } from "@/lib/photo";
+import ExcelButton, { InchargeLine } from "../../components/ExcelButton";
 
 export default function AttendancePage() {
   const { getToken } = useAuth();
@@ -146,6 +147,11 @@ export default function AttendancePage() {
      SUMMARY
      ===================================================== */
 
+  const selectedClubData = clubs.find(
+    (club) =>
+      String(club._id || club.id) === String(selectedClub)
+  );
+
   const totalStudents = students.length;
 
   const averageAttendance =
@@ -170,14 +176,36 @@ export default function AttendancePage() {
           HEADER
           ================================================= */}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Consolidated Attendance
-        </h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Consolidated Attendance
+          </h1>
 
-        <p className="mt-1 text-sm text-gray-500">
-          View overall attendance of club members.
-        </p>
+          <p className="mt-1 text-sm text-gray-500">
+            View overall attendance of club members.
+          </p>
+        </div>
+
+        {students.length > 0 && (
+          <ExcelButton
+            fileName={`Attendance_${selectedClubData?.code || selectedClubData?.name || "Club"}`}
+            sheetName="Attendance"
+            getRows={() =>
+              students.map((student, index) => ({
+                "Sl No": index + 1,
+                Name: student.name,
+                "Register Number": student.registerNumber,
+                Email: student.email,
+                Department: student.department?.code || "",
+                Semester: student.semester ?? "",
+                Attended: student.attendedClasses,
+                "Total Classes": student.totalClasses,
+                "Attendance %": student.percentage,
+              }))
+            }
+          />
+        )}
       </div>
 
       {/* =================================================
@@ -217,6 +245,13 @@ export default function AttendancePage() {
           </select>
 
         </div>
+
+        {selectedClubData && (
+          <InchargeLine
+            incharge={selectedClubData.incharge}
+            className="mt-3"
+          />
+        )}
 
       </div>
 
