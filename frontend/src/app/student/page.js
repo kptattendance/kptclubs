@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import Link from "next/link";
 import { photoThumb } from "@/lib/photo";
 import StudentPhotoUpdater from "../components/StudentPhotoUpdater";
+import StudentDetailsEditor from "../components/StudentDetailsEditor";
 
 export default function StudentDashboard() {
   const { getToken, isLoaded } = useAuth();
@@ -257,6 +258,21 @@ export default function StudentDashboard() {
               setStudent((current) =>
                 current
                   ? { ...current, photoUrl }
+                  : current
+              );
+            }
+          }}
+        />
+      )}
+
+      {student && (
+        <StudentDetailsEditor
+          student={student}
+          onUpdated={(updated) => {
+            if (updated) {
+              setStudent((current) =>
+                current
+                  ? { ...current, ...updated }
                   : current
               );
             }

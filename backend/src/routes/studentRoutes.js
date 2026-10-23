@@ -5,6 +5,7 @@ import {
   getStudentClubs,
   registerStudent,
   registerForClub,
+  updateStudentProfile,
   deleteStudent,
 } from "../controllers/studentController.js";
 
@@ -27,6 +28,17 @@ router.get(
   requireAuth,
   resolveUser,
   getStudentProfile
+);
+
+// =====================================================
+// LOGGED-IN STUDENT EDITS THEIR OWN DETAILS
+// =====================================================
+
+router.put(
+  "/profile",
+  requireAuth,
+  resolveUser,
+  updateStudentProfile
 );
 
 

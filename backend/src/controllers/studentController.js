@@ -774,3 +774,185 @@ export const getStudentClubs = async (
   }
 };
 
+
+/*
+=====================================================
+LOGGED-IN STUDENT EDITS THEIR OWN DETAILS
+PUT /api/student/profile
+
+Email cannot be changed here: it is the sign-in identity.
+=====================================================
+*/
+
+export const updateStudentProfile = async (req, res) => {
+  try {
+    if (req.user.role !== "STUDENT") {
+      return res.status(403).json({
+        success: false,
+        message: "Only students can edit their details",
+      });
+    }
+
+    const {
+      name,
+      phone,
+      registerNumber,
+      departmentId,
+      semester,
+      admissionYear,
+    } = req.body || {};
+
+    const badRequest = (message) =>
+      res.status(400).json({
+        success: false,
+        message,
+      });
+
+    if (
+      [name, phone, registerNumber].some(
+        (value) => typeof value !== "string"
+      )
+    ) {
+      return badRequest("Please fill in all details");
+    }
+
+    const normalizedName = name
+      .trim()
+      .replace(/\s+/g, " ");
+
+    const normalizedPhone = phone.trim();
+
+    const normalizedRegisterNumber = registerNumber
+      .trim()
+      .toUpperCase();
+
+    const semesterNumber = Number(semester);
+
+    const admissionYearNumber = Number(admissionYear);
+
+    if (
+      normalizedName.length < 2 ||
+      normalizedName.length > 100
+    ) {
+      return badRequest(
+        "Name must be between 2 and 100 characters"
+      );
+    }
+
+    if (!PHONE_PATTERN.test(normalizedPhone)) {
+      return badRequest("Enter a valid phone number");
+    }
+
+    if (
+      !REGISTER_NUMBER_PATTERN.test(
+        normalizedRegisterNumber
+      )
+    ) {
+      return badRequest("Enter a valid register number");
+    }
+
+    if (
+      !Number.isInteger(semesterNumber) ||
+      semesterNumber < 1 ||
+      semesterNumber > 6
+    ) {
+      return badRequest("Semester must be between 1 and 6");
+    }
+
+    if (
+      !Number.isInteger(admissionYearNumber) ||
+      admissionYearNumber < 2000 ||
+      admissionYearNumber > new Date().getFullYear() + 1
+    ) {
+      return badRequest("Enter a valid admission year");
+    }
+
+    if (!isValidId(departmentId)) {
+      return badRequest("Please select your department");
+    }
+
+    const [studentProfile, department, duplicate] =
+      await Promise.all([
+        StudentProfile.findOne({
+          userId: req.userId,
+        }),
+        Department.findById(departmentId).select(
+          "_id code name"
+        ),
+        StudentProfile.findOne({
+          registerNumber: normalizedRegisterNumber,
+          userId: { $ne: req.userId },
+        }).select("_id"),
+      ]);
+
+    if (!studentProfile) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found",
+      });
+    }
+
+    if (!department) {
+      return badRequest("Department not found");
+    }
+
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This register number is already used by another student",
+      });
+    }
+
+    studentProfile.registerNumber = normalizedRegisterNumber;
+    studentProfile.phone = normalizedPhone;
+    studentProfile.departmentId = department._id;
+    studentProfile.semester = semesterNumber;
+    studentProfile.admissionYear = admissionYearNumber;
+
+    await studentProfile.save();
+
+    await User.updateOne(
+      { _id: req.userId },
+      {
+        $set: {
+          name: normalizedName,
+          phone: normalizedPhone,
+          departmentId: department._id,
+        },
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Your details have been updated",
+      student: {
+        name: normalizedName,
+        phone: normalizedPhone,
+        registerNumber: normalizedRegisterNumber,
+        semester: semesterNumber,
+        admissionYear: admissionYearNumber,
+        department: {
+          _id: department._id,
+          code: department.code,
+          name: department.name,
+        },
+      },
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This register number is already used by another student",
+      });
+    }
+
+    console.error("Update student profile error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update your details",
+    });
+  }
+};
